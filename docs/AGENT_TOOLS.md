@@ -1,0 +1,21 @@
+# Initial agent tools
+
+The first agent tool set is intentionally small:
+
+- `list_files(path?)`: list entries inside the app-private workspace.
+- `read_file(path)`: read a UTF-8 text file; model context is capped at 40,000 characters.
+- `write_file(path, content)`: write a UTF-8 file up to 10 KiB, only after user approval; larger edits can be made by the user in the editor.
+- `run_command(command)`: execute one command from the limited workspace terminal. Mutating commands such as `mkdir` and `touch` require approval; arbitrary shell commands and shell operators are rejected.
+
+The workspace is stored under the app-private `filesDir/orbitforge-workspace` directory. It is not yet an arbitrary user-selected project folder. Paths are canonicalized and constrained to the workspace root to block `..` traversal and symlink escapes.
+
+The agent loop is bounded to eight model/tool rounds. It requires an OpenAI-compatible endpoint that supports function/tool calling. A provider may accept chat completions but not tool calls; in that case normal chat should still be used and agent mode may return a provider error.
+
+
+## Skills
+
+On first agent use, OrbitForge creates two editable starter skills under `workspace/skills/`:
+- `android-kotlin/SKILL.md`
+- `code-review/SKILL.md`
+
+Up to five `SKILL.md` files of at most 12 KiB each are included as guidance in the agent system context. They are explicitly treated as untrusted content and cannot override application safety rules. Edit them in the Projects file editor.
