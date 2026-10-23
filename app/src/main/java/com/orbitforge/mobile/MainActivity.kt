@@ -85,6 +85,7 @@ import com.orbitforge.mobile.github.GitHubRepository
 import com.orbitforge.mobile.mcp.McpClient
 import com.orbitforge.mobile.security.SecretStore
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CompletableDeferred
@@ -118,6 +119,8 @@ private data class ChatMessage(val role: String, val text: String)
 
 @Composable
 private fun OrbitForgeApp(storage: AppStorage, secrets: SecretStore) {
+    // Keep network/agent work alive while the user switches between top-level tabs.
+    val appScope = rememberCoroutineScope()
     var destination by remember { mutableStateOf(Destination.Chat) }
     var selectedFile by remember { mutableStateOf("") }
     Scaffold(containerColor = ForgeBackground, bottomBar = {
@@ -128,7 +131,7 @@ private fun OrbitForgeApp(storage: AppStorage, secrets: SecretStore) {
         }
     }) { padding ->
         when (destination) {
-            Destination.Chat -> ChatScreen(storage, secrets, Modifier.padding(padding))
+            Destination.Chat -> ChatScreen(storage, secrets, appScope, Modifier.padding(padding))
             Destination.Projects -> ProjectsScreen(storage, onOpenFile = { selectedFile = it; destination = Destination.Editor }, onOpenTerminal = { destination = Destination.Terminal }, modifier = Modifier.padding(padding))
             Destination.Editor -> EditorScreen(storage, selectedFile, onBack = { destination = Destination.Projects }, modifier = Modifier.padding(padding))
             Destination.Terminal -> TerminalScreen(onBack = { destination = Destination.Projects }, modifier = Modifier.padding(padding))
@@ -150,9 +153,8 @@ private fun AppHeader(subtitle: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ChatScreen(storage: AppStorage, secrets: SecretStore, modifier: Modifier = Modifier) {
+private fun ChatScreen(storage: AppStorage, secrets: SecretStore, requestScope: CoroutineScope, modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val history = remember {
         mutableStateListOf<ChatMessage>().apply {
             val saved = storage.loadMessages()
@@ -290,7 +292,7 @@ private fun ChatScreen(storage: AppStorage, secrets: SecretStore, modifier: Modi
                     status = if (agentMode) "Запускаю агентный цикл…" else "Связываюсь с провайдером…"
                     DiagnosticLog.add(context, "INFO", "Chat", "Request started; agentMode=$agentMode; messages=${history.size}")
 
-                    activeJob = scope.launch {
+                    activeJob = requestScope.launch {
                         try {
                             if (agentMode) {
                                 val answer = agent.runTask(
