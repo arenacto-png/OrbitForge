@@ -29,12 +29,16 @@ object AgentToolCallParser {
             "Модель запросила слишком много инструментов за один шаг (лимит $maxCalls)."
         }
 
+        val seenIds = mutableSetOf<String>()
         return (0 until toolCalls.length()).map { index ->
             val call = toolCalls.optJSONObject(index)
                 ?: throw IllegalArgumentException("Вызов инструмента #${index + 1} имеет неверный формат.")
             val id = call.optString("id").trim()
             require(id.isNotEmpty() && id.length <= 200) {
                 "Вызов инструмента #${index + 1} содержит некорректный идентификатор."
+            }
+            require(seenIds.add(id)) {
+                "Идентификатор вызова инструмента '$id' повторяется."
             }
             val function = call.optJSONObject("function")
                 ?: throw IllegalArgumentException("Вызов инструмента '$id' не содержит function.")
