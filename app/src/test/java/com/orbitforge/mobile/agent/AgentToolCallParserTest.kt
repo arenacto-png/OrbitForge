@@ -56,6 +56,13 @@ class AgentToolCallParserTest {
     }
 
     @Test
+    fun rejectsDuplicateCallIds() {
+        val calls = JSONArray().put(call(id = "duplicate")).put(call(id = "duplicate"))
+
+        assertIllegalArgument { AgentToolCallParser.parse(calls) }
+    }
+
+    @Test
     fun rejectsMissingIdAndInvalidFunctionName() {
         assertIllegalArgument {
             AgentToolCallParser.parse(JSONArray().put(call(id = "")))
