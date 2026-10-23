@@ -85,6 +85,7 @@ import com.orbitforge.mobile.github.GitHubRepository
 import com.orbitforge.mobile.mcp.McpClient
 import com.orbitforge.mobile.security.SecretStore
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CompletableDeferred
@@ -118,6 +119,8 @@ private data class ChatMessage(val role: String, val text: String)
 
 @Composable
 private fun OrbitForgeApp(storage: AppStorage, secrets: SecretStore) {
+    // Keep network/agent work alive while the user switches between top-level tabs.
+    val appScope = rememberCoroutineScope()
     var destination by remember { mutableStateOf(Destination.Chat) }
     var selectedFile by remember { mutableStateOf("") }
     Scaffold(containerColor = ForgeBackground, bottomBar = {
@@ -127,13 +130,26 @@ private fun OrbitForgeApp(storage: AppStorage, secrets: SecretStore) {
             NavigationBarItem(selected = destination == Destination.Settings || destination == Destination.Logs, onClick = { destination = Destination.Settings }, icon = { Icon(Icons.Default.Settings, null) }, label = { Text("Настройки") })
         }
     }) { padding ->
-        when (destination) {
-            Destination.Chat -> ChatScreen(storage, secrets, Modifier.padding(padding))
-            Destination.Projects -> ProjectsScreen(storage, onOpenFile = { selectedFile = it; destination = Destination.Editor }, onOpenTerminal = { destination = Destination.Terminal }, modifier = Modifier.padding(padding))
-            Destination.Editor -> EditorScreen(storage, selectedFile, onBack = { destination = Destination.Projects }, modifier = Modifier.padding(padding))
-            Destination.Terminal -> TerminalScreen(onBack = { destination = Destination.Projects }, modifier = Modifier.padding(padding))
-            Destination.Settings -> SettingsScreen(storage, secrets, onOpenLogs = { destination = Destination.Logs }, modifier = Modifier.padding(padding))
-            Destination.Logs -> LogsScreen(onBack = { destination = Destination.Settings }, modifier = Modifier.padding(padding))
+        Box(Modifier.fillMaxSize()) {
+            // Keep ChatScreen composed while hidden so its state and active request survive tab changes.
+            ChatScreen(
+                storage,
+                secrets,
+                appScope,
+                modifier = if (destination == Destination.Chat) {
+                    Modifier.padding(padding).fillMaxSize()
+                } else {
+                    Modifier.size(0.dp)
+                }
+            )
+            when (destination) {
+                Destination.Chat -> Unit
+                Destination.Projects -> ProjectsScreen(storage, onOpenFile = { selectedFile = it; destination = Destination.Editor }, onOpenTerminal = { destination = Destination.Terminal }, modifier = Modifier.padding(padding))
+                Destination.Editor -> EditorScreen(storage, selectedFile, onBack = { destination = Destination.Projects }, modifier = Modifier.padding(padding))
+                Destination.Terminal -> TerminalScreen(onBack = { destination = Destination.Projects }, modifier = Modifier.padding(padding))
+                Destination.Settings -> SettingsScreen(storage, secrets, onOpenLogs = { destination = Destination.Logs }, modifier = Modifier.padding(padding))
+                Destination.Logs -> LogsScreen(onBack = { destination = Destination.Settings }, modifier = Modifier.padding(padding))
+            }
         }
     }
 }
@@ -150,9 +166,8 @@ private fun AppHeader(subtitle: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ChatScreen(storage: AppStorage, secrets: SecretStore, modifier: Modifier = Modifier) {
+private fun ChatScreen(storage: AppStorage, secrets: SecretStore, requestScope: CoroutineScope, modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val history = remember {
         mutableStateListOf<ChatMessage>().apply {
             val saved = storage.loadMessages()
@@ -188,6 +203,50 @@ private fun ChatScreen(storage: AppStorage, secrets: SecretStore, modifier: Modi
                 Text(status, color = ForgeMuted, fontSize = 12.sp)
             }
         }
+        if (history.none { it.role == "user" }) {
+            Column(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text("С чего начнём?", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Выбери пример или напиши свою задачу. Для ответов модели сначала настрой подключение.",
+                    fontSize = 12.sp,
+                    color = ForgeMuted
+                )
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { draft = "Объясни, как устроен мой проект, и с чего лучше начать." },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    ) { Text("Изучить проект", fontSize = 11.sp) }
+                    OutlinedButton(
+                        onClick = { draft = "Помоги найти и исправить ошибку в моём коде." },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    ) { Text("Исправить ошибку", fontSize = 11.sp) }
+                }
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { draft = "Создай понятный README.md для моего проекта." },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    ) { Text("Создать README", fontSize = 11.sp) }
+                    OutlinedButton(
+                        onClick = { draft = "Предложи план улучшения архитектуры и интерфейса проекта." },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    ) { Text("План улучшений", fontSize = 11.sp) }
+                }
+            }
+        }
+
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -246,7 +305,7 @@ private fun ChatScreen(storage: AppStorage, secrets: SecretStore, modifier: Modi
                     status = if (agentMode) "Запускаю агентный цикл…" else "Связываюсь с провайдером…"
                     DiagnosticLog.add(context, "INFO", "Chat", "Request started; agentMode=$agentMode; messages=${history.size}")
 
-                    activeJob = scope.launch {
+                    activeJob = requestScope.launch {
                         try {
                             if (agentMode) {
                                 val answer = agent.runTask(
@@ -438,8 +497,36 @@ private fun ProjectsScreen(storage: AppStorage, onOpenFile: (String) -> Unit, on
     Column(modifier.fillMaxSize().background(ForgeBackground).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         AppHeader("Рабочая область", Modifier.padding(horizontal = 0.dp))
         Text("Проекты и файлы", fontSize = 26.sp, fontWeight = FontWeight.Bold)
-        Text("Файлы хранятся в закрытой папке приложения. Нажми на файл, чтобы открыть редактор.", color = ForgeMuted, fontSize = 12.sp)
-        OutlinedButton(onClick = onOpenTerminal, modifier = Modifier.fillMaxWidth()) { Text("Открыть встроенный терминал") }
+        Text("Твоя локальная рабочая область", color = ForgeMuted, fontSize = 12.sp)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = ForgeSurface),
+            shape = RoundedCornerShape(18.dp)
+        ) {
+            Row(
+                Modifier.fillMaxWidth().padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    Modifier.size(48.dp).background(ForgeAccent.copy(alpha = 0.16f), RoundedCornerShape(15.dp)),
+                    contentAlignment = Alignment.Center
+                ) { Icon(Icons.Default.FolderOpen, contentDescription = null, tint = ForgeAccent) }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text("Рабочая область", fontWeight = FontWeight.SemiBold)
+                    Text(if (files.isEmpty()) "Пока нет файлов" else "Файлы готовы к работе", color = ForgeMuted, fontSize = 12.sp)
+                }
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(files.size.toString(), color = ForgeAccent, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text("файлов", color = ForgeMuted, fontSize = 10.sp)
+                }
+            }
+        }
+        Text("ИНСТРУМЕНТЫ", color = ForgeMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        OutlinedButton(onClick = onOpenTerminal, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+            Text("Открыть встроенный терминал")
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(enabled = !transferBusy, onClick = { folderPicker.launch(null) }, modifier = Modifier.weight(1f)) {
                 Text(if (transferBusy) "Подожди…" else "Выбрать папку и импортировать")
@@ -653,7 +740,38 @@ private fun SettingsScreen(storage: AppStorage, secrets: SecretStore, onOpenLogs
     var mcpBusy by remember { mutableStateOf(false) }
     val githubClient = remember { GitHubRepositoryClient() }
     Column(modifier.fillMaxSize().background(ForgeBackground).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        AppHeader("Настройка модели", Modifier.padding(horizontal = 0.dp)); Text("Настройки", fontSize = 26.sp, fontWeight = FontWeight.Bold)
+        AppHeader("Центр управления", Modifier.padding(horizontal = 0.dp))
+        Text("Настройки", fontSize = 26.sp, fontWeight = FontWeight.Bold)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = ForgeSurface),
+            shape = RoundedCornerShape(18.dp)
+        ) {
+            Row(
+                Modifier.fillMaxWidth().padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    Modifier.size(42.dp).background(
+                        (if (secrets.hasApiKey()) Color(0xFF56D6C9) else ForgeAccent).copy(alpha = 0.16f),
+                        RoundedCornerShape(13.dp)
+                    ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.SmartToy, contentDescription = null, tint = if (secrets.hasApiKey()) Color(0xFF56D6C9) else ForgeAccent)
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(if (secrets.hasApiKey()) "Ключ API сохранён" else "Подключение не настроено", fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (secrets.hasApiKey() && storage.model.isNotBlank()) "Модель: ${storage.model}" else "Укажи провайдера и модель ниже",
+                        color = ForgeMuted,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        }
+        Text("ПРОВАЙДЕР ИИ", color = ForgeMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
         Text("Совместимый с OpenAI Chat Completions API провайдер", color = ForgeMuted, fontSize = 13.sp)
         OutlinedTextField(endpoint, { endpoint = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Базовый URL API") }, singleLine = true)
         OutlinedTextField(model, { model = it }, modifier = Modifier.fillMaxWidth(), label = { Text("ID модели") }, singleLine = true)
