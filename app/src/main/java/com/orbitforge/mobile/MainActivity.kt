@@ -130,13 +130,26 @@ private fun OrbitForgeApp(storage: AppStorage, secrets: SecretStore) {
             NavigationBarItem(selected = destination == Destination.Settings || destination == Destination.Logs, onClick = { destination = Destination.Settings }, icon = { Icon(Icons.Default.Settings, null) }, label = { Text("Настройки") })
         }
     }) { padding ->
-        when (destination) {
-            Destination.Chat -> ChatScreen(storage, secrets, appScope, Modifier.padding(padding))
-            Destination.Projects -> ProjectsScreen(storage, onOpenFile = { selectedFile = it; destination = Destination.Editor }, onOpenTerminal = { destination = Destination.Terminal }, modifier = Modifier.padding(padding))
-            Destination.Editor -> EditorScreen(storage, selectedFile, onBack = { destination = Destination.Projects }, modifier = Modifier.padding(padding))
-            Destination.Terminal -> TerminalScreen(onBack = { destination = Destination.Projects }, modifier = Modifier.padding(padding))
-            Destination.Settings -> SettingsScreen(storage, secrets, onOpenLogs = { destination = Destination.Logs }, modifier = Modifier.padding(padding))
-            Destination.Logs -> LogsScreen(onBack = { destination = Destination.Settings }, modifier = Modifier.padding(padding))
+        Box(Modifier.fillMaxSize()) {
+            // Keep ChatScreen composed while hidden so its state and active request survive tab changes.
+            ChatScreen(
+                storage,
+                secrets,
+                appScope,
+                modifier = if (destination == Destination.Chat) {
+                    Modifier.padding(padding).fillMaxSize()
+                } else {
+                    Modifier.size(0.dp)
+                }
+            )
+            when (destination) {
+                Destination.Chat -> Unit
+                Destination.Projects -> ProjectsScreen(storage, onOpenFile = { selectedFile = it; destination = Destination.Editor }, onOpenTerminal = { destination = Destination.Terminal }, modifier = Modifier.padding(padding))
+                Destination.Editor -> EditorScreen(storage, selectedFile, onBack = { destination = Destination.Projects }, modifier = Modifier.padding(padding))
+                Destination.Terminal -> TerminalScreen(onBack = { destination = Destination.Projects }, modifier = Modifier.padding(padding))
+                Destination.Settings -> SettingsScreen(storage, secrets, onOpenLogs = { destination = Destination.Logs }, modifier = Modifier.padding(padding))
+                Destination.Logs -> LogsScreen(onBack = { destination = Destination.Settings }, modifier = Modifier.padding(padding))
+            }
         }
     }
 }
