@@ -1,0 +1,44 @@
+name: Unpack OrbitForge starter
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'OrbitForge-starter.zip'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  unpack:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.modified, 'OrbitForge-starter.zip') || contains(github.event.head_commit.added, 'OrbitForge-starter.zip')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Unpack project files
+        run: |
+          if [ ! -f OrbitForge-starter.zip ]; then
+            echo 'OrbitForge-starter.zip not found in repository root.'
+            exit 1
+          fi
+          unzip -oq OrbitForge-starter.zip
+          if [ ! -d OrbitForge ]; then
+            echo 'Expected OrbitForge/ directory was not found in the archive.'
+            exit 1
+          fi
+          cp -a OrbitForge/. .
+          rm -rf OrbitForge OrbitForge-starter.zip
+      - name: Commit extracted project
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'No extracted changes to commit.'
+            exit 0
+          fi
+          git commit -m 'Add OrbitForge starter project files'
+          git push
+      - name: Start Android CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run android.yml --ref main
