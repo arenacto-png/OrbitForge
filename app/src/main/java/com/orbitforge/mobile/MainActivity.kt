@@ -725,7 +725,38 @@ private fun SettingsScreen(storage: AppStorage, secrets: SecretStore, onOpenLogs
     var mcpBusy by remember { mutableStateOf(false) }
     val githubClient = remember { GitHubRepositoryClient() }
     Column(modifier.fillMaxSize().background(ForgeBackground).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        AppHeader("Настройка модели", Modifier.padding(horizontal = 0.dp)); Text("Настройки", fontSize = 26.sp, fontWeight = FontWeight.Bold)
+        AppHeader("Центр управления", Modifier.padding(horizontal = 0.dp))
+        Text("Настройки", fontSize = 26.sp, fontWeight = FontWeight.Bold)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = ForgeSurface),
+            shape = RoundedCornerShape(18.dp)
+        ) {
+            Row(
+                Modifier.fillMaxWidth().padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    Modifier.size(42.dp).background(
+                        (if (secrets.hasApiKey()) Color(0xFF56D6C9) else ForgeAccent).copy(alpha = 0.16f),
+                        RoundedCornerShape(13.dp)
+                    ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.SmartToy, contentDescription = null, tint = if (secrets.hasApiKey()) Color(0xFF56D6C9) else ForgeAccent)
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(if (secrets.hasApiKey()) "Ключ API сохранён" else "Подключение не настроено", fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (secrets.hasApiKey() && storage.model.isNotBlank()) "Модель: ${storage.model}" else "Укажи провайдера и модель ниже",
+                        color = ForgeMuted,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        }
+        Text("ПРОВАЙДЕР ИИ", color = ForgeMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
         Text("Совместимый с OpenAI Chat Completions API провайдер", color = ForgeMuted, fontSize = 13.sp)
         OutlinedTextField(endpoint, { endpoint = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Базовый URL API") }, singleLine = true)
         OutlinedTextField(model, { model = it }, modifier = Modifier.fillMaxWidth(), label = { Text("ID модели") }, singleLine = true)
