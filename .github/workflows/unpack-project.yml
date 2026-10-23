@@ -4,12 +4,13 @@ on:
     branches: [main]
     paths:
       - 'OrbitForge-starter.zip'
+      - '.github/workflows/unpack-project.yml'
   workflow_dispatch:
 permissions:
   contents: write
 jobs:
   unpack:
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.modified, 'OrbitForge-starter.zip') || contains(github.event.head_commit.added, 'OrbitForge-starter.zip')
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.modified, 'OrbitForge-starter.zip') || contains(github.event.head_commit.added, 'OrbitForge-starter.zip') || contains(github.event.head_commit.modified, '.github/workflows/unpack-project.yml') || contains(github.event.head_commit.added, '.github/workflows/unpack-project.yml')
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
