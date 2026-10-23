@@ -188,6 +188,50 @@ private fun ChatScreen(storage: AppStorage, secrets: SecretStore, modifier: Modi
                 Text(status, color = ForgeMuted, fontSize = 12.sp)
             }
         }
+        if (history.none { it.role == "user" }) {
+            Column(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text("С чего начнём?", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Выбери пример или напиши свою задачу. Для ответов модели сначала настрой подключение.",
+                    fontSize = 12.sp,
+                    color = ForgeMuted
+                )
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { draft = "Объясни, как устроен мой проект, и с чего лучше начать." },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    ) { Text("Изучить проект", fontSize = 11.sp) }
+                    OutlinedButton(
+                        onClick = { draft = "Помоги найти и исправить ошибку в моём коде." },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    ) { Text("Исправить ошибку", fontSize = 11.sp) }
+                }
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { draft = "Создай понятный README.md для моего проекта." },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    ) { Text("Создать README", fontSize = 11.sp) }
+                    OutlinedButton(
+                        onClick = { draft = "Предложи план улучшения архитектуры и интерфейса проекта." },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    ) { Text("План улучшений", fontSize = 11.sp) }
+                }
+            }
+        }
+
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
