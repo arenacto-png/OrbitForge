@@ -96,32 +96,29 @@ class AgentEngine(context: Context) {
                 ?: throw IOException("Ответ API не содержит message.")
             history.put(message)
 
-            val toolCalls = message.optJSONArray("tool_calls")
-            if (toolCalls == null || toolCalls.length() == 0) {
+            val toolCalls = AgentToolCallParser.parse(
+                message.optJSONArray("tool_calls"),
+                maxCalls = MAX_TOOL_CALLS_PER_STEP,
+                maxArgumentChars = MAX_ARGUMENT_CHARS
+            )
+            if (toolCalls.isEmpty()) {
                 val content = message.optString("content").orEmpty()
                 return content.ifBlank { "Агент завершил задачу без текстового ответа." }
             }
 
-            require(toolCalls.length() <= MAX_TOOL_CALLS_PER_STEP) {
-                "Модель запросила слишком много инструментов за один шаг (лимит $MAX_TOOL_CALLS_PER_STEP)."
-            }
-            for (index in 0 until toolCalls.length()) {
-                val call = toolCalls.optJSONObject(index) ?: continue
-                val callId = call.optString("id")
-                val function = call.optJSONObject("function") ?: JSONObject()
-                val name = function.optString("name")
-                val rawArguments = function.optString("arguments", "{}")
-                require(rawArguments.length <= MAX_ARGUMENT_CHARS) { "Аргументы инструмента превышают лимит." }
-                val args = try {
-                    JSONObject(rawArguments)
-                } catch (_: Exception) {
-                    JSONObject()
-                }
-                onStatus("Инструмент: $name")
-                val result = executeTool(name, args, approveWrite, onStatus, mcpSession, remoteToolMap)
+            for (toolCall in toolCalls) {
+                onStatus("Инструмент: ${toolCall.name}")
+                val result = executeTool(
+                    toolCall.name,
+                    toolCall.arguments,
+                    approveWrite,
+                    onStatus,
+                    mcpSession,
+                    remoteToolMap
+                )
                 history.put(JSONObject()
                     .put("role", "tool")
-                    .put("tool_call_id", callId)
+                    .put("tool_call_id", toolCall.id)
                     .put("content", result))
             }
         }
