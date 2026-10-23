@@ -482,8 +482,36 @@ private fun ProjectsScreen(storage: AppStorage, onOpenFile: (String) -> Unit, on
     Column(modifier.fillMaxSize().background(ForgeBackground).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         AppHeader("Рабочая область", Modifier.padding(horizontal = 0.dp))
         Text("Проекты и файлы", fontSize = 26.sp, fontWeight = FontWeight.Bold)
-        Text("Файлы хранятся в закрытой папке приложения. Нажми на файл, чтобы открыть редактор.", color = ForgeMuted, fontSize = 12.sp)
-        OutlinedButton(onClick = onOpenTerminal, modifier = Modifier.fillMaxWidth()) { Text("Открыть встроенный терминал") }
+        Text("Твоя локальная рабочая область", color = ForgeMuted, fontSize = 12.sp)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = ForgeSurface),
+            shape = RoundedCornerShape(18.dp)
+        ) {
+            Row(
+                Modifier.fillMaxWidth().padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    Modifier.size(48.dp).background(ForgeAccent.copy(alpha = 0.16f), RoundedCornerShape(15.dp)),
+                    contentAlignment = Alignment.Center
+                ) { Icon(Icons.Default.FolderOpen, contentDescription = null, tint = ForgeAccent) }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text("Рабочая область", fontWeight = FontWeight.SemiBold)
+                    Text(if (files.isEmpty()) "Пока нет файлов" else "Файлы готовы к работе", color = ForgeMuted, fontSize = 12.sp)
+                }
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(files.size.toString(), color = ForgeAccent, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text("файлов", color = ForgeMuted, fontSize = 10.sp)
+                }
+            }
+        }
+        Text("ИНСТРУМЕНТЫ", color = ForgeMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        OutlinedButton(onClick = onOpenTerminal, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+            Text("Открыть встроенный терминал")
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(enabled = !transferBusy, onClick = { folderPicker.launch(null) }, modifier = Modifier.weight(1f)) {
                 Text(if (transferBusy) "Подожди…" else "Выбрать папку и импортировать")
