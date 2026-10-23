@@ -39,7 +39,7 @@ class WorkspaceTransfer(private val context: Context) {
                 }
                 continue
             }
-            if (!document.isFile || document.length > MAX_FILE_BYTES) { skipped++; continue }
+            if (!document.isFile || document.length() > MAX_FILE_BYTES) { skipped++; continue }
             val target = safeTarget(relative)
             if (target.exists()) { skipped++; continue }
             target.parentFile?.mkdirs()
