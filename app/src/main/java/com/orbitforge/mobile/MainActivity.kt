@@ -390,6 +390,7 @@ private fun ChatScreen(storage: AppStorage, secrets: SecretStore, requestScope: 
             title = { Text(when {
                 approval.path.startsWith("MCP:") -> "Разрешить внешний MCP-вызов?"
                 approval.path.startsWith("terminal:") -> "Разрешить команду терминала?"
+                approval.path.startsWith("batch:") -> "Разрешить пакетную запись файлов?"
                 else -> "Разрешить запись файла?"
             }) },
             text = {
@@ -402,6 +403,14 @@ private fun ChatScreen(storage: AppStorage, secrets: SecretStore, requestScope: 
                                 Text(approval.content, fontSize = 11.sp, color = Color(0xFFD5D9E3))
                             }
                             Text("Вызов передаст аргументы настроенному внешнему MCP-серверу. Продолжай только если доверяешь этому серверу.")
+                        }
+                        approval.path.startsWith("batch:") -> {
+                            Text("Будут изменены файлы: ${approval.path.removePrefix("batch: ")}", fontWeight = FontWeight.SemiBold)
+                            Text("Общий предпросмотр изменений:", color = ForgeMuted)
+                            Column(Modifier.heightIn(max = 280.dp).fillMaxWidth().background(ForgeSurface, RoundedCornerShape(8.dp)).padding(10.dp).verticalScroll(rememberScrollState())) {
+                                Text(approval.diffPreview, fontSize = 11.sp, color = Color(0xFFD5D9E3))
+                            }
+                            Text("Все пути и содержимое проверяются до записи. При ошибке приложение попытается восстановить прежние файлы.")
                         }
                         approval.path.startsWith("terminal:") -> {
                             Text(approval.path.removePrefix("terminal: "), fontWeight = FontWeight.SemiBold)
