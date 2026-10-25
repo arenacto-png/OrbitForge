@@ -3,7 +3,7 @@
 ## Implemented in source (not yet live-verified)
 
 - Native Compose UI: agent/chat, projects, text editor, limited terminal, settings, diagnostics.
-- OpenAI-compatible streaming chat, provider settings, and an in-app connection test.
+- OpenAI-compatible streaming chat, provider settings, and an in-app connection test. Common HTTP failures now produce actionable provider-neutral guidance in chat and agent mode.
 - Local conversation history and separate encrypted API/GitHub/MCP credentials using Android Keystore.
 - Bounded tool-calling agent with file listing, reading, search, writes with approval, and allowlisted terminal commands.
 - Editable `SKILL.md` starter skills with bounded loading and untrusted-skill policy.
