@@ -28,6 +28,13 @@ jobs:
         run: ./gradlew test
       - name: Build debug APK
         run: ./gradlew assembleDebug
+      - name: Upload debug APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbitforge-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
       - name: Run Android emulator UI smoke tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -35,6 +42,7 @@ jobs:
           target: default
           arch: x86_64
           profile: pixel_2
+          disk-size: 2048M
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           emulator-boot-timeout: 900
@@ -48,10 +56,3 @@ jobs:
             app/build/reports/androidTests/connected/**
             app/build/outputs/androidTest-results/connected/**
           if-no-files-found: warn
-      - name: Upload debug APK
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: orbitforge-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
