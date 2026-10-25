@@ -70,14 +70,7 @@ class OpenAiCompatibleClient(private val context: Context) {
                         val body = response.body?.string().orEmpty().take(1200)
                         val safeBody = DiagnosticLog.redact(body)
                         DiagnosticLog.add(context, "ERROR", "ApiClient", "HTTP ${response.code}: $safeBody")
-                        throw IOException(
-                            when (response.code) {
-                                401, 403 -> "API отклонил ключ или доступ (HTTP ${response.code}). Проверь ключ и права."
-                                404 -> "Endpoint не найден (HTTP 404). Проверь базовый URL провайдера."
-                                429 -> "Лимит запросов или средств исчерпан (HTTP 429)."
-                                else -> "Ошибка API HTTP ${response.code}: ${safeBody.take(350)}"
-                            }
-                        )
+                        throw IOException(ProviderErrorMessages.forHttpStatus(response.code, safeBody))
                     }
                     val source = response.body?.source()
                         ?: throw IOException("API вернул пустой ответ.")
