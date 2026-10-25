@@ -164,7 +164,7 @@ class AgentEngine(context: Context) {
                             if (!response.isSuccessful) {
                                 val safe = DiagnosticLog.redact(text).take(500)
                                 DiagnosticLog.add(appContext, "ERROR", "AgentEngine", "HTTP ${response.code}: $safe")
-                                throw IOException("Ошибка API HTTP ${response.code}: ${safe.ifBlank { response.message }}")
+                                throw IOException(ProviderErrorMessages.forHttpStatus(response.code, safe.ifBlank { response.message }))
                             }
                             val parsed = try {
                                 JSONObject(text)
