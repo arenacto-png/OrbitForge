@@ -11,12 +11,12 @@
 - GitHub repository listing/creation and one-commit workspace sync, with explicit confirmation and basic secret filtering.
 - SAF folder picker with bounded import/export, private workspace editor, and persistent folder permissions.
 - Diagnostic report copy/share with API/GitHub/MCP token redaction and compact crash traces.
-- GitHub Actions workflow for unit tests, debug APK, Android emulator UI smoke tests, and test report artifacts.
-- Unit tests for provider URL rules, diagnostic redaction, and workspace path traversal.
+- GitHub Actions workflow runs JVM unit tests and builds/uploads a debug APK; Android emulator UI smoke tests are not yet configured.
+- Unit tests for provider URL rules, diagnostic redaction, workspace path traversal, and symlink escape handling.
 
 ## Still requires live verification
 
-- Android Gradle sync, compile, unit tests, emulator UI tests, and APK installation. The new CI checks are configured but have not yet run against a GitHub repository.
+- Android Studio Gradle sync and physical-device installation/verification. GitHub Actions unit tests and debug APK builds have run successfully; emulator UI tests are not currently part of the workflow.
 - Real API provider compatibility, streaming, cancellation, and tool-call support.
 - GitHub token scopes, repository creation, and workspace push.
 - MCP compatibility with the target server's protocol/authentication variant.
