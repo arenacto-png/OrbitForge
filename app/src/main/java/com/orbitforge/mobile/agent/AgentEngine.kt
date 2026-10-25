@@ -2,6 +2,7 @@ package com.orbitforge.mobile.agent
 
 import android.content.Context
 import com.orbitforge.mobile.ai.ProviderConfig
+import com.orbitforge.mobile.ai.ProviderErrorMessages
 import com.orbitforge.mobile.diagnostics.DiagnosticLog
 import com.orbitforge.mobile.security.SecretStore
 import com.orbitforge.mobile.mcp.McpTool
