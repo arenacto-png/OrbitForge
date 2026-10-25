@@ -115,7 +115,12 @@ class AgentEngine(context: Context) {
                 val args = try {
                     JSONObject(rawArguments)
                 } catch (_: Exception) {
-                    JSONObject()
+                    history.put(JSONObject()
+                        .put("role", "tool")
+                        .put("tool_call_id", callId)
+                        .put("content", "Ошибка: модель вернула некорректный JSON аргументов для инструмента '$name'. Инструмент не выполнялся; повтори вызов с корректным JSON-объектом."))
+                    DiagnosticLog.add(appContext, "WARN", "AgentTool", "Rejected malformed JSON arguments for tool=$name")
+                    continue
                 }
                 onStatus("Инструмент: $name")
                 val result = executeTool(name, args, approveWrite, onStatus, mcpSession, remoteToolMap)
