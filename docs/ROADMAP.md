@@ -20,7 +20,7 @@
 - [x] Unit tests for workspace path traversal and absolute-path rejection
 - [ ] Add tests for symlink escapes, tool-call parsing and agent step limits
 - [x] Bounded diff preview before agent writes; approve/reject supported
-- [ ] Support structured multi-file patch application
+- [x] Support structured multi-file writes with combined diff, one approval, validation, and rollback on write failure
 - [ ] Add conversation/task cancellation and recovery tests
 - [ ] Add provider-specific adapters and clearer usage/error diagnostics
 
