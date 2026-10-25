@@ -31,10 +31,14 @@ jobs:
       - name: Run Android emulator UI smoke tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: 30
+          target: default
           arch: x86_64
           profile: pixel_2
-          script: ./gradlew connectedDebugAndroidTest
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          emulator-boot-timeout: 900
+          script: adb wait-for-device && ./gradlew connectedDebugAndroidTest
       - name: Upload Android test reports
         if: always()
         uses: actions/upload-artifact@v4
