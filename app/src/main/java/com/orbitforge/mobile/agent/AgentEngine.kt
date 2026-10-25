@@ -87,8 +87,10 @@ class AgentEngine(context: Context) {
             .put(JSONObject().put("role", "system").put("content", systemPrompt))
             .put(JSONObject().put("role", "user").put("content", userTask))
 
-        repeat(MAX_STEPS) { step ->
-            onStatus("Запрос к модели · шаг ${step + 1}/$MAX_STEPS")
+        val stepBudget = AgentStepBudget(MAX_STEPS)
+        while (!stepBudget.isExhausted) {
+            val step = stepBudget.consume()
+            onStatus("Запрос к модели · шаг $step/$MAX_STEPS")
             val response = requestTools(config, apiKey, history, availableTools)
             val choices = response.optJSONArray("choices")
                 ?: throw IOException("Ответ API не содержит choices.")

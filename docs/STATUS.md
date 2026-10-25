@@ -12,7 +12,7 @@
 - SAF folder picker with bounded import/export, private workspace editor, and persistent folder permissions.
 - Diagnostic report copy/share with API/GitHub/MCP token redaction and compact crash traces.
 - GitHub Actions workflow for unit tests, debug APK, Android emulator UI smoke tests, and test report artifacts.
-- Unit tests for provider URL rules, diagnostic redaction, and workspace path traversal.
+- Unit tests for provider URL rules, diagnostic redaction, workspace path traversal, and the bounded agent step budget.
 
 ## Still requires live verification
 
