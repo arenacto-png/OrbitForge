@@ -1,6 +1,14 @@
 package com.orbitforge.mobile.agent
 
 object WorkspaceDiff {
+    /** Combines per-file previews into one bounded approval screen. */
+    fun combineBatchPreview(previews: List<Pair<String, String>>, maxChars: Int = 16_000): String {
+        require(previews.isNotEmpty() && previews.size <= 8) { "Пакет должен содержать от 1 до 8 файлов." }
+        val combined = previews.joinToString("\n\n") { (path, preview) -> "### $path\n$preview" }
+        require(combined.length <= maxChars) { "Общий предпросмотр слишком велик. Разбей изменения на несколько пакетов." }
+        return combined
+    }
+
     /**
      * Small bounded preview, not a complete unified diff. Shows common prefix/suffix as context
      * and marks changed middle lines with '-' and '+'.

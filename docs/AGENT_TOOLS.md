@@ -19,3 +19,8 @@ On first agent use, OrbitForge creates two editable starter skills under `worksp
 - `code-review/SKILL.md`
 
 Up to five `SKILL.md` files of at most 12 KiB each are included as guidance in the agent system context. They are explicitly treated as untrusted content and cannot override application safety rules. Edit them in the Projects file editor.
+
+
+## Multi-file agent writes
+
+The agent may call `write_files` with 1–8 `{path, content}` entries. OrbitForge validates each relative path, secret-sensitive path/content rules, duplicate canonical targets, and the 10 KB per-file limit before showing one combined bounded preview. The user approves or rejects the entire batch. Writes are applied sequentially only after approval; on an I/O failure, already touched files are restored from in-memory snapshots where possible. This is a best-effort rollback, not a filesystem-level atomic transaction.
