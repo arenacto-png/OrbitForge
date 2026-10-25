@@ -22,7 +22,8 @@
 - [x] Bounded diff preview before agent writes; approve/reject supported
 - [ ] Support structured multi-file patch application
 - [ ] Add conversation/task cancellation and recovery tests
-- [ ] Add provider-specific adapters and clearer usage/error diagnostics
+- [x] Add actionable provider HTTP error diagnostics for common failures
+- [ ] Add provider-specific adapters
 
 ## Milestone 3 — Developer workspace
 - [x] Basic project file list and text editor
