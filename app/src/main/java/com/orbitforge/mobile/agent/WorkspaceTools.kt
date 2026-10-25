@@ -80,6 +80,7 @@ class WorkspaceTools(context: Context) {
             require(change.content.toByteArray(Charsets.UTF_8).size <= 10 * 1024) { "Файл больше лимита записи 10 КБ: ${change.path}" }
             val file = resolve(change.path)
             require(!file.exists() || file.isFile) { "Целевой путь существует и не является файлом: ${change.path}" }
+            require(!file.isFile || file.length() <= 512 * 1024) { "Существующий файл слишком велик для безопасного отката: ${change.path}" }
             Triple(change, file, if (file.isFile) file.readBytes() else null)
         }
         val canonicalPaths = prepared.map { it.second.canonicalPath }
