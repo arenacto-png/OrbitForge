@@ -19,6 +19,7 @@
 ## Milestone 2 — Agent foundation
 - [x] Unit tests for workspace path traversal and absolute-path rejection
 - [ ] Add tests for symlink escapes, tool-call parsing and agent step limits
+- [x] Add unit tests for terminal command parsing and shell-operator rejection
 - [x] Bounded diff preview before agent writes; approve/reject supported
 - [ ] Support structured multi-file patch application
 - [ ] Add conversation/task cancellation and recovery tests
@@ -33,7 +34,7 @@
 - [ ] Git status/diff/commit support
 
 ## Milestone 4 — Runtime and extensibility
-- [x] Limited app-private workspace terminal with command allowlist
+- [x] Limited app-private workspace terminal with command allowlist and secret-safe file reads
 - [ ] Optional Termux/remote runtime adapter
 - [x] Skills (`SKILL.md`) loader with editable starter skills and size limits
 - [x] Single remote MCP endpoint with tool discovery/calls and approval before every external tool call
