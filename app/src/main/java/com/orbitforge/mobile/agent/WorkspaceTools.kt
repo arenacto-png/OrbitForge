@@ -5,6 +5,8 @@ import java.io.File
 
 data class WorkspaceEntry(val path: String, val isDirectory: Boolean, val sizeBytes: Long)
 
+data class AgentWriteChange(val path: String, val content: String)
+
 class WorkspaceTools(context: Context) {
     val root: File = File(context.filesDir, "orbitforge-workspace").apply { mkdirs() }
     private val pathPolicy = WorkspacePathPolicy(root)
@@ -54,6 +56,53 @@ class WorkspaceTools(context: Context) {
         file.parentFile?.mkdirs()
         file.writeText(content, Charsets.UTF_8)
         return "Записано ${content.toByteArray(Charsets.UTF_8).size} байт в $relativePath"
+    }
+
+    /** Validate an agent write and return a bounded preview without changing the workspace. */
+    fun previewAgentWrite(relativePath: String, content: String): String {
+        require(relativePath.isNotBlank()) { "Путь не может быть пустым." }
+        require(!isSensitivePath(relativePath)) { "Запись в секретные файлы через агента запрещена." }
+        require(!looksLikeSecretContent(content)) { "Содержимое похоже на секрет или токен; запись агентом заблокирована." }
+        require(content.toByteArray(Charsets.UTF_8).size <= 10 * 1024) { "Файл больше лимита записи 10 КБ." }
+        val file = resolve(relativePath)
+        require(!file.exists() || file.isFile) { "Целевой путь существует и не является файлом." }
+        val old = if (file.isFile) readFile(relativePath) else ""
+        return WorkspaceDiff.preview(old, content, isNewFile = !file.exists())
+    }
+
+    /** Validate every path first, then apply the batch; restore prior files if any write fails. */
+    fun writeFilesAtomically(changes: List<AgentWriteChange>): String {
+        require(changes.isNotEmpty() && changes.size <= 8) { "Пакет должен содержать от 1 до 8 файлов." }
+        val prepared = changes.map { change ->
+            require(change.path.isNotBlank()) { "Путь не может быть пустым." }
+            require(!isSensitivePath(change.path)) { "Запись в секретные файлы через агента запрещена." }
+            require(!looksLikeSecretContent(change.content)) { "Содержимое похоже на секрет или токен; запись агентом заблокирована." }
+            require(change.content.toByteArray(Charsets.UTF_8).size <= 10 * 1024) { "Файл больше лимита записи 10 КБ: ${change.path}" }
+            val file = resolve(change.path)
+            require(!file.exists() || file.isFile) { "Целевой путь существует и не является файлом: ${change.path}" }
+            Triple(change, file, if (file.isFile) file.readBytes() else null)
+        }
+        val canonicalPaths = prepared.map { it.second.canonicalPath }
+        require(canonicalPaths.distinct().size == canonicalPaths.size) { "В пакете есть повторяющиеся пути." }
+        val applied = mutableListOf<Triple<AgentWriteChange, File, ByteArray?>>()
+        try {
+            prepared.forEach { item ->
+                applied += item
+                writeFile(item.first.path, item.first.content)
+            }
+        } catch (failure: Exception) {
+            applied.asReversed().forEach { (_, file, oldBytes) ->
+                runCatching {
+                    if (oldBytes == null) file.delete()
+                    else {
+                        file.parentFile?.mkdirs()
+                        file.writeBytes(oldBytes)
+                    }
+                }
+            }
+            throw IllegalStateException("Пакетная запись отменена; выполнен откат изменённых файлов.", failure)
+        }
+        return "Успешно записано файлов: ${prepared.size}."
     }
 
     /** User-initiated editor save; still workspace-confined, but allows larger files than agent tool writes. */
