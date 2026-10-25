@@ -11,7 +11,7 @@
 - GitHub repository listing/creation and one-commit workspace sync, with explicit confirmation and basic secret filtering.
 - SAF folder picker with bounded import/export, private workspace editor, and persistent folder permissions.
 - Diagnostic report copy/share with API/GitHub/MCP token redaction and compact crash traces.
-- GitHub Actions workflow for unit tests, debug APK, Android emulator UI smoke tests, and test report artifacts.
+- GitHub Actions workflow includes JVM unit tests, debug APK build, and an Android emulator UI smoke-test job with report artifacts; the emulator job's first CI run is pending.
 - Unit tests for provider URL rules, diagnostic redaction, and workspace path traversal.
 
 ## Still requires live verification
