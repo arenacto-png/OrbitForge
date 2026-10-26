@@ -31,7 +31,7 @@ class ChatRequestRecoveryTest {
 
         assertTrue(history[1].text.startsWith("Первый фрагмент ответа"))
         assertTrue(history[1].text.contains("Ответ неполный"))
-        assertTrue(history[1].text.contains("Запрос отменён пользователем"))
+        assertTrue(history[1].text.contains("запрос отменён пользователем"))
     }
 
     @Test
