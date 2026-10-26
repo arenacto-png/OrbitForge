@@ -11,7 +11,7 @@
 - GitHub repository listing/creation and one-commit workspace sync, with explicit confirmation and basic secret filtering.
 - SAF folder picker with bounded import/export, private workspace editor, and persistent folder permissions.
 - Diagnostic report copy/share with API/GitHub/MCP token redaction and compact crash traces.
-- GitHub Actions workflow runs JVM unit tests and builds/uploads the debug APK before emulator testing. The Android emulator UI smoke-test job is configured; previous attempts failed before boot because the hosted runner had about 6.9 GB free while the emulator required about 7.3 GB. The workflow now removes unrelated preinstalled toolchains and checks for at least 9 GiB free space before starting the emulator; rerun validation is pending.
+- GitHub Actions uses Gradle 8.11.1 via the Gradle setup action, runs JVM unit tests, and builds/uploads the debug APK before emulator testing. The Android emulator UI smoke-test job is configured; previous attempts failed before boot because the hosted runner had about 6.9 GB free while the emulator required about 7.3 GB. The workflow now removes unrelated preinstalled toolchains and checks for at least 9 GiB free space before starting the emulator; rerun validation is pending.
 - Unit tests for provider URL rules, diagnostic redaction, and workspace path traversal.
 
 ## Still requires live verification

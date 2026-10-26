@@ -22,12 +22,12 @@ These are smoke tests, not exhaustive functional or security verification. Netwo
 
 ## Run locally
 
-With JDK 17, the Android SDK/platform matching the project's Gradle configuration, Gradle 8.11.1 and an Android emulator/device configured:
+With JDK 17, Gradle 8.11.1, the Android SDK/platform matching the project's Gradle configuration, and an Android emulator/device configured:
 
 ```bash
-./gradlew testDebugUnitTest
-./gradlew assembleDebug
-./gradlew connectedDebugAndroidTest
+gradle testDebugUnitTest
+gradle assembleDebug
+gradle connectedDebugAndroidTest
 ```
 
 ## Where to find results
