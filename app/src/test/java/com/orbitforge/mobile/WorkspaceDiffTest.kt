@@ -23,4 +23,16 @@ class WorkspaceDiffTest {
     fun labelsNewFile() {
         assertTrue(WorkspaceDiff.preview("", "hello", isNewFile = true).contains("[новый файл]"))
     }
+
+    @Test
+    fun boundsLongDiffPreviews() {
+        val oldContent = (1..200).joinToString("\n") { "old-line-$it" }
+        val newContent = (1..200).joinToString("\n") { "new-line-$it" }
+
+        val preview = WorkspaceDiff.preview(oldContent, newContent, maxLines = 12, isNewFile = false)
+
+        assertTrue(preview.lines().size <= 13)
+        assertTrue(preview.length <= 6_100)
+        assertTrue(preview.contains("предпросмотр сокращён"))
+    }
 }
