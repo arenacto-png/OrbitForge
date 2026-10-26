@@ -15,9 +15,13 @@ The GitHub Actions workflow runs on pushes, pull requests, or manually from the 
 - Projects screen and limited terminal entry/return navigation.
 - Settings validation for an insecure `http://` provider URL.
 - Opening diagnostics and copying the diagnostic report.
-- Unit coverage for parsing workspace search results, including paths and matched text containing colons.
 
 These are smoke tests, not exhaustive functional or security verification. Network-dependent API, GitHub, MCP, and SAF behavior still need dedicated fake-server tests and a manual run on a real device/provider.
+
+## Unit test coverage
+
+- Workspace search result parsing handles nested paths, colons in filenames and matched text, unknown paths, and malformed line numbers.
+- Filename search excludes sensitive paths such as `.env`, SSH keys, and local credential files.
 
 ## Run locally
 
