@@ -22,6 +22,7 @@ These are smoke tests, not exhaustive functional or security verification. Netwo
 
 - Workspace search result parsing handles nested paths, colons in filenames and matched text, unknown paths, and malformed line numbers.
 - Filename search excludes sensitive paths such as `.env`, SSH keys, and local credential files.
+- Syntax highlighting preserves source text, colors common tokens, and falls back to plain text for files larger than 100,000 characters.
 
 ## Run locally
 
