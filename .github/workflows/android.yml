@@ -35,6 +35,20 @@ jobs:
           name: orbitforge-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+      - name: Free disk space for Android emulator
+        run: |
+          echo "Disk space before cleanup:"
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /opt/hostedtoolcache/CodeQL
+          sudo apt-get clean
+          echo "Disk space after cleanup:"
+          df -h /
+          available_bytes="$(df -B1 --output=avail / | tail -n 1 | tr -d ' ')"
+          required_bytes="$((9 * 1024 * 1024 * 1024))"
+          if [ "$available_bytes" -lt "$required_bytes" ]; then
+            echo "::error::Android emulator requires at least 9 GiB free space; only $((available_bytes / 1024 / 1024 / 1024)) GiB is available."
+            exit 1
+          fi
       - name: Run Android emulator UI smoke tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
