@@ -474,6 +474,12 @@ private fun ProjectsScreen(storage: AppStorage, onOpenFile: (String) -> Unit, on
     var refresh by remember { mutableStateOf(0) }
     var newFilePath by remember { mutableStateOf("README.md") }
     var notice by remember { mutableStateOf("") }
+    var searchQuery by remember { mutableStateOf("") }
+    var searchResults by remember { mutableStateOf<List<WorkspaceSearchHit>>(emptyList()) }
+    var searchNotice by remember { mutableStateOf("") }
+    var searchBusy by remember { mutableStateOf(false) }
+    var searchActive by remember { mutableStateOf(false) }
+    val workspaceTools = remember { WorkspaceTools(context.applicationContext) }
     val workspace = storage.workspace()
     val files = remember(refresh) { workspace.walkTopDown().filter { it.isFile }.take(300).toList() }
     val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -570,7 +576,68 @@ private fun ProjectsScreen(storage: AppStorage, onOpenFile: (String) -> Unit, on
             }) { Text("Создать") }
         }
         if (notice.isNotBlank()) Text(notice, color = ForgeMuted, fontSize = 12.sp)
-        if (files.isEmpty()) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { value ->
+                    searchQuery = value
+                    searchActive = false
+                    searchResults = emptyList()
+                    searchNotice = ""
+                },
+                modifier = Modifier.weight(1f),
+                label = { Text("Поиск по файлам и содержимому") },
+                singleLine = true
+            )
+            Button(
+                enabled = !searchBusy && searchQuery.isNotBlank(),
+                onClick = {
+                    val query = searchQuery.trim()
+                    val knownPaths = files.map { it.relativeTo(workspace).path.replace(java.io.File.separatorChar, '/') }
+                    searchActive = true
+                    searchBusy = true
+                    searchResults = emptyList()
+                    searchNotice = "Ищу…"
+                    scope.launch {
+                        try {
+                            val hits = withContext(Dispatchers.IO) {
+                                val output = workspaceTools.searchText(query)
+                                val filenameHits = files.mapNotNull { file ->
+                                    val path = file.relativeTo(workspace).path.replace(java.io.File.separatorChar, '/')
+                                    if (path.contains(query, ignoreCase = true)) {
+                                        WorkspaceSearchHit(path, null, "Совпадение в имени файла")
+                                    } else null
+                                }
+                                val contentHits = if (output.startsWith("Совпадений не найдено")) {
+                                    emptyList()
+                                } else {
+                                    output.lineSequence().mapNotNull { line ->
+                                        WorkspaceSearchResultParser.parse(line, knownPaths)
+                                    }.toList()
+                                }
+                                (filenameHits + contentHits)
+                                    .distinctBy { "${it.path}:${it.lineNumber}:${it.preview}" }
+                                    .take(100)
+                            }
+                            searchResults = hits
+                            searchNotice = if (hits.isEmpty()) "Совпадений не найдено." else "Найдено совпадений: ${hits.size}"
+                        } catch (e: Exception) {
+                            searchResults = emptyList()
+                            searchNotice = e.message ?: "Поиск не выполнен."
+                        } finally {
+                            searchBusy = false
+                        }
+                    }
+                }
+            ) {
+                if (searchBusy) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                else Text("Найти")
+            }
+        }
+        if (searchActive && searchNotice.isNotBlank()) {
+            Text(searchNotice, color = ForgeMuted, fontSize = 12.sp)
+        }
+        if (files.isEmpty() && !searchActive) {
             Card(colors = CardDefaults.cardColors(containerColor = ForgeSurface)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Рабочая папка пуста", fontWeight = FontWeight.SemiBold)
@@ -579,16 +646,46 @@ private fun ProjectsScreen(storage: AppStorage, onOpenFile: (String) -> Unit, on
             }
         }
         LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(files) { file ->
-                val relative = file.relativeTo(workspace).path.replace(java.io.File.separatorChar, '/')
-                Card(modifier = Modifier.fillMaxWidth().clickable { onOpenFile(relative) }, colors = CardDefaults.cardColors(containerColor = ForgeSurface)) {
-                    Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Code, null, tint = ForgeAccent)
-                        Column(Modifier.padding(start = 10.dp).weight(1f)) {
-                            Text(relative, fontWeight = FontWeight.Medium)
-                            Text("${file.length()} байт", color = ForgeMuted, fontSize = 12.sp)
+            if (searchActive) {
+                if (searchResults.isEmpty()) {
+                    item {
+                        Text(
+                            if (searchBusy) "Поиск выполняется…" else searchNotice.ifBlank { "Совпадений не найдено." },
+                            color = ForgeMuted,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(vertical = 12.dp)
+                        )
+                    }
+                } else {
+                    item { Text("Результаты поиска", color = ForgeMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                    items(searchResults) { hit ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth().clickable { onOpenFile(hit.path) },
+                            colors = CardDefaults.cardColors(containerColor = ForgeSurface)
+                        ) {
+                            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(hit.path, fontWeight = FontWeight.Medium)
+                                Text(
+                                    if (hit.lineNumber == null) hit.preview else "Строка ${hit.lineNumber}: ${hit.preview}",
+                                    color = ForgeMuted,
+                                    fontSize = 12.sp
+                                )
+                            }
                         }
-                        Text("Открыть", color = ForgeAccent, fontSize = 12.sp)
+                    }
+                }
+            } else {
+                items(files) { file ->
+                    val relative = file.relativeTo(workspace).path.replace(java.io.File.separatorChar, '/')
+                    Card(modifier = Modifier.fillMaxWidth().clickable { onOpenFile(relative) }, colors = CardDefaults.cardColors(containerColor = ForgeSurface)) {
+                        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Code, null, tint = ForgeAccent)
+                            Column(Modifier.padding(start = 10.dp).weight(1f)) {
+                                Text(relative, fontWeight = FontWeight.Medium)
+                                Text("${file.length()} байт", color = ForgeMuted, fontSize = 12.sp)
+                            }
+                            Text("Открыть", color = ForgeAccent, fontSize = 12.sp)
+                        }
                     }
                 }
             }
