@@ -856,28 +856,25 @@ private fun EditorScreen(storage: AppStorage, relativePath: String, onBack: () -
                 }
             },
             confirmButton = {
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    TextButton(onClick = {
-                        content = originalContent
+                Button(onClick = {
+                    try {
+                        val result = tools.writeFileFromUser(relativePath, content)
+                        originalContent = content
                         showDiff = false
-                        notice = "Изменения отклонены."
-                    }) { Text("Отклонить") }
-                    Button(onClick = {
-                        try {
-                            val result = tools.writeFileFromUser(relativePath, content)
-                            originalContent = content
-                            showDiff = false
-                            notice = result
-                            DiagnosticLog.add(context, "INFO", "Editor", "File saved after diff approval: $relativePath (${content.length} chars)")
-                        } catch (e: Exception) {
-                            notice = e.message ?: "Не удалось сохранить файл"
-                            DiagnosticLog.add(context, "ERROR", "Editor", "Save failed for $relativePath: ${e.message ?: e.javaClass.simpleName}")
-                        }
-                    }) { Text("Применить") }
-                }
+                        notice = result
+                        DiagnosticLog.add(context, "INFO", "Editor", "File saved after diff approval: $relativePath (${content.length} chars)")
+                    } catch (e: Exception) {
+                        notice = e.message ?: "Не удалось сохранить файл"
+                        DiagnosticLog.add(context, "ERROR", "Editor", "Save failed for $relativePath: ${e.message ?: e.javaClass.simpleName}")
+                    }
+                }) { Text("Применить") }
             },
             dismissButton = {
-                TextButton(onClick = { showDiff = false }) { Text("Вернуться") }
+                TextButton(onClick = {
+                    content = originalContent
+                    showDiff = false
+                    notice = "Изменения отклонены."
+                }) { Text("Отклонить") }
             }
         )
     }
