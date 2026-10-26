@@ -604,7 +604,7 @@ private fun ProjectsScreen(storage: AppStorage, onOpenFile: (String) -> Unit, on
                                 val output = workspaceTools.searchText(query)
                                 val filenameHits = files.mapNotNull { file ->
                                     val path = file.relativeTo(workspace).path.replace(java.io.File.separatorChar, '/')
-                                    if (path.contains(query, ignoreCase = true)) {
+                                    if (!WorkspaceSearchPathPolicy.isSensitive(path) && path.contains(query, ignoreCase = true)) {
                                         WorkspaceSearchHit(path, null, "Совпадение в имени файла")
                                     } else null
                                 }
