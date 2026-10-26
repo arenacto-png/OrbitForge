@@ -1,8 +1,7 @@
 package com.orbitforge.mobile
 
-import androidx.compose.ui.test.assertExists
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasSetTextAction
-import androidx.compose.ui.test.onAllNodes
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -19,18 +18,18 @@ class OrbitForgeSmokeTest {
 
     @Test
     fun appLaunchesAndMainDestinationsOpen() {
-        composeRule.onNodeWithText("OrbitForge").assertExists()
+        composeRule.onNodeWithText("OrbitForge").assertIsDisplayed()
 
         composeRule.onNodeWithText("Проекты").performClick()
-        composeRule.onNodeWithText("Проекты и файлы").assertExists()
+        composeRule.onNodeWithText("Проекты и файлы").assertIsDisplayed()
 
         composeRule.onNodeWithText("Открыть встроенный терминал").performClick()
-        composeRule.onNodeWithText("Ограниченный терминал").assertExists()
+        composeRule.onNodeWithText("Ограниченный терминал").assertIsDisplayed()
         composeRule.onNodeWithText("Назад к проектам").performClick()
-        composeRule.onNodeWithText("Проекты и файлы").assertExists()
+        composeRule.onNodeWithText("Проекты и файлы").assertIsDisplayed()
 
         composeRule.onNodeWithText("Настройки").performClick()
-        composeRule.onNodeWithText("Базовый URL API").assertExists()
+        composeRule.onNodeWithText("Базовый URL API").assertIsDisplayed()
     }
 
     @Test
@@ -38,17 +37,17 @@ class OrbitForgeSmokeTest {
         composeRule.onNodeWithText("Настройки").performClick()
         composeRule.onNodeWithText("Открыть логи и диагностику").performScrollTo().performClick()
 
-        composeRule.onNodeWithText("Логи и отчёт об ошибках").assertExists()
+        composeRule.onNodeWithText("Логи и отчёт об ошибках").assertIsDisplayed()
         composeRule.onNodeWithText("Копировать").performClick()
-        composeRule.onNodeWithText("Отчёт скопирован в буфер обмена.").assertExists()
+        composeRule.onNodeWithText("Отчёт скопирован в буфер обмена.").assertIsDisplayed()
     }
 
     @Test
     fun settingsRejectPlainHttpEndpoint() {
         composeRule.onNodeWithText("Настройки").performClick()
-        composeRule.onNodeWithText("Базовый URL API").performScrollTo().assertExists()
-        composeRule.onAllNodes(hasSetTextAction()).onFirst().performTextClearance().performTextInput("http://invalid.example/v1")
+        composeRule.onNodeWithText("Базовый URL API").performScrollTo().assertIsDisplayed()
+        composeRule.onAllNodes(hasSetTextAction())[0].performTextClearance().performTextInput("http://invalid.example/v1")
         composeRule.onNodeWithText("Сохранить настройки").performScrollTo().performClick()
-        composeRule.onNodeWithText("Адрес должен начинаться с https://").assertExists()
+        composeRule.onNodeWithText("Адрес должен начинаться с https://").assertIsDisplayed()
     }
 }
