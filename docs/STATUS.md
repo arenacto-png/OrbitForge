@@ -5,6 +5,7 @@
 - Native Compose UI: agent/chat, projects, text editor, limited terminal, settings, diagnostics.
 - OpenAI-compatible streaming chat, provider settings, and an in-app connection test.
 - Local conversation history and separate encrypted API/GitHub/MCP credentials using Android Keystore.
+- Cancelled chat/agent requests replace the pending assistant placeholder with a durable cancellation result; partial chat output is retained with an incomplete-response marker, and the history is persisted.
 - Bounded tool-calling agent with file listing, reading, search, writes with approval, and allowlisted terminal commands.
 - Editable `SKILL.md` starter skills with bounded loading and untrusted-skill policy.
 - Remote HTTP MCP initialization, tool discovery, and tool calls; each external call requires confirmation.

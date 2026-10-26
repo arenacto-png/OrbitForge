@@ -21,7 +21,7 @@
 - [ ] Add tests for symlink escapes, tool-call parsing and agent step limits
 - [x] Bounded diff preview before agent writes; approve/reject supported
 - [ ] Support structured multi-file patch application
-- [ ] Add conversation/task cancellation and recovery tests
+- [x] Add conversation/task cancellation and recovery tests (persist cancelled result and preserve partial chat output)
 - [ ] Add provider-specific adapters and clearer usage/error diagnostics
 
 ## Milestone 3 — Developer workspace
