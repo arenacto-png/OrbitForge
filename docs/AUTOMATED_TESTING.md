@@ -20,6 +20,11 @@ Before starting the emulator, CI removes unrelated preinstalled toolchains from 
 
 These are smoke tests, not exhaustive functional or security verification. Network-dependent API, GitHub, MCP, and SAF behavior still need dedicated fake-server tests and a manual run on a real device/provider.
 
+## Unit test coverage
+
+- Workspace search result parsing handles nested paths, colons in filenames and matched text, unknown paths, and malformed line numbers.
+- Filename search excludes sensitive paths such as `.env`, SSH keys, and local credential files.
+
 ## Run locally
 
 With JDK 17, Gradle 8.11.1, the Android SDK/platform matching the project's Gradle configuration, and an Android emulator/device configured:
