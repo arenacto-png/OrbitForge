@@ -83,11 +83,11 @@ internal class SyntaxHighlightingTransformation private constructor(
         private val TAG_COLOR = Color(0xFFF07178)
 
         private val KEYWORD_PATTERN = Regex(
-            """(?i:\\b(?:abstract|and|as|assert|async|await|break|case|catch|class|const|continue|data|def|default|delete|do|else|elif|enum|except|export|extends|false|final|finally|for|from|fun|global|if|implements|import|in|instanceof|interface|is|lambda|let|new|nonlocal|not|null|object|open|or|override|package|pass|private|protected|public|raise|return|self|static|super|suspend|switch|this|throw|throws|true|try|type|typeof|undefined|val|var|void|when|while|with|yield)\\b)"""
+            """(?i:\b(?:abstract|and|as|assert|async|await|break|case|catch|class|const|continue|data|def|default|delete|do|else|elif|enum|except|export|extends|false|final|finally|for|from|fun|global|if|implements|import|in|instanceof|interface|is|lambda|let|new|nonlocal|not|null|object|open|or|override|package|pass|private|protected|public|raise|return|self|static|super|suspend|switch|this|throw|throws|true|try|type|typeof|undefined|val|var|void|when|while|with|yield)\b)"""
         )
-        private val NUMBER_PATTERN = Regex("""-?\\b\\d+(?:\\.\\d+)?\\b""")
+        private val NUMBER_PATTERN = Regex("""-?\b\d+(?:\.\d+)?\b""")
         private val TOKEN_PATTERN = Regex(
-            """(?s)//[^\\n]*|/\\*.*?\\*/|<!--.*?-->|#[^\\n]*|</?[A-Za-z][^>]*>|"(?:\\\\.|[^"\\\\])*"|'(?:\\\\.|[^'\\\\])*'|(?i:\\b(?:abstract|and|as|assert|async|await|break|case|catch|class|const|continue|data|def|default|delete|do|else|elif|enum|except|export|extends|false|final|finally|for|from|fun|global|if|implements|import|in|instanceof|interface|is|lambda|let|new|nonlocal|not|null|object|open|or|override|package|pass|private|protected|public|raise|return|self|static|super|suspend|switch|this|throw|throws|true|try|type|typeof|undefined|val|var|void|when|while|with|yield)\\b)|-?\\b\\d+(?:\\.\\d+)?\\b"""
+            """(?s)//[^\n]*|/\*.*?\*/|<!--.*?-->|#[^\n]*|</?[A-Za-z][^>]*>|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|(?i:\b(?:abstract|and|as|assert|async|await|break|case|catch|class|const|continue|data|def|default|delete|do|else|elif|enum|except|export|extends|false|final|finally|for|from|fun|global|if|implements|import|in|instanceof|interface|is|lambda|let|new|nonlocal|not|null|object|open|or|override|package|pass|private|protected|public|raise|return|self|static|super|suspend|switch|this|throw|throws|true|try|type|typeof|undefined|val|var|void|when|while|with|yield)\b)|-?\b\d+(?:\.\d+)?\b"""
         )
 
         fun forFile(path: String): VisualTransformation {
