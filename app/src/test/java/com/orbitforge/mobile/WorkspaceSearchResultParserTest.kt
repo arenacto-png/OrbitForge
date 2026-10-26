@@ -2,6 +2,8 @@ package com.orbitforge.mobile
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WorkspaceSearchResultParserTest {
@@ -31,6 +33,14 @@ class WorkspaceSearchResultParserTest {
     @Test
     fun rejectsLinesThatDoNotBelongToKnownWorkspaceFiles() {
         assertNull(WorkspaceSearchResultParser.parse("outside.txt:1: secret", listOf("inside.txt")))
+    }
+
+    @Test
+    fun sensitiveWorkspacePathsAreExcludedFromFilenameSearch() {
+        assertTrue(WorkspaceSearchPathPolicy.isSensitive(".env"))
+        assertTrue(WorkspaceSearchPathPolicy.isSensitive("config/.ssh/id_ed25519"))
+        assertTrue(WorkspaceSearchPathPolicy.isSensitive("local.properties"))
+        assertFalse(WorkspaceSearchPathPolicy.isSensitive("src/main/App.kt"))
     }
 
     @Test
