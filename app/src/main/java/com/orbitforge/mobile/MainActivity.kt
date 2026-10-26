@@ -73,6 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.orbitforge.mobile.agent.AgentEngine
 import com.orbitforge.mobile.agent.WorkspaceTools
+import com.orbitforge.mobile.agent.WorkspaceDiff
 import com.orbitforge.mobile.agent.WorkspaceTransfer
 import com.orbitforge.mobile.agent.WriteApproval
 import com.orbitforge.mobile.agent.WorkspaceTerminal
@@ -797,8 +798,17 @@ private fun EditorScreen(storage: AppStorage, relativePath: String, onBack: () -
     val context = LocalContext.current
     val tools = remember { WorkspaceTools(context.applicationContext) }
     val initialRead = remember(relativePath) { runCatching { tools.readFile(relativePath) } }
+    var originalContent by remember(relativePath) { mutableStateOf(initialRead.getOrDefault("")) }
     var content by remember(relativePath) { mutableStateOf(initialRead.getOrDefault("")) }
     var notice by remember(relativePath) { mutableStateOf(initialRead.exceptionOrNull()?.message.orEmpty()) }
+    var showDiff by remember(relativePath) { mutableStateOf(false) }
+    val isNewFile = remember(relativePath) {
+        runCatching { !tools.validatePath(relativePath).exists() }.getOrDefault(false)
+    }
+    val diffPreview = remember(originalContent, content, isNewFile) {
+        WorkspaceDiff.preview(originalContent, content, isNewFile = isNewFile)
+    }
+
     Column(modifier.fillMaxSize().background(ForgeBackground).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         AppHeader("Редактор файлов", Modifier.padding(horizontal = 0.dp))
         Text(relativePath, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
@@ -811,23 +821,67 @@ private fun EditorScreen(storage: AppStorage, relativePath: String, onBack: () -
             shape = RoundedCornerShape(12.dp),
             visualTransformation = remember(relativePath) { SyntaxHighlightingTransformation.forFile(relativePath) }
         )
+        if (content != originalContent) {
+            Text("Есть несохранённые изменения", color = ForgeMuted, fontSize = 12.sp)
+        }
         if (notice.isNotBlank()) Text(notice, color = ForgeMuted, fontSize = 12.sp)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) { Text("Назад") }
-            Button(onClick = {
-                try {
-                    val result = tools.writeFileFromUser(relativePath, content)
-                    notice = result
-                    DiagnosticLog.add(context, "INFO", "Editor", "File saved: $relativePath (${content.length} chars)")
-                } catch (e: Exception) {
-                    notice = e.message ?: "Не удалось сохранить файл"
-                    DiagnosticLog.add(context, "ERROR", "Editor", "Save failed for $relativePath: ${e.message ?: e.javaClass.simpleName}")
-                }
-            }, modifier = Modifier.weight(1f)) { Text("Сохранить") }
+            Button(
+                onClick = {
+                    if (content == originalContent) {
+                        notice = "Нет изменений для сохранения."
+                    } else {
+                        showDiff = true
+                    }
+                },
+                modifier = Modifier.weight(1f)
+            ) { Text("Проверить изменения") }
         }
     }
-}
 
+    if (showDiff) {
+        AlertDialog(
+            onDismissRequest = { showDiff = false },
+            title = { Text("Проверка изменений") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(relativePath, color = ForgeMuted, fontSize = 12.sp)
+                    Text(
+                        diffPreview,
+                        modifier = Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState()),
+                        fontSize = 12.sp,
+                        lineHeight = 15.sp
+                    )
+                }
+            },
+            confirmButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(onClick = {
+                        content = originalContent
+                        showDiff = false
+                        notice = "Изменения отклонены."
+                    }) { Text("Отклонить") }
+                    Button(onClick = {
+                        try {
+                            val result = tools.writeFileFromUser(relativePath, content)
+                            originalContent = content
+                            showDiff = false
+                            notice = result
+                            DiagnosticLog.add(context, "INFO", "Editor", "File saved after diff approval: $relativePath (${content.length} chars)")
+                        } catch (e: Exception) {
+                            notice = e.message ?: "Не удалось сохранить файл"
+                            DiagnosticLog.add(context, "ERROR", "Editor", "Save failed for $relativePath: ${e.message ?: e.javaClass.simpleName}")
+                        }
+                    }) { Text("Применить") }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiff = false }) { Text("Вернуться") }
+            }
+        )
+    }
+}
 
 @Composable
 private fun SettingsScreen(storage: AppStorage, secrets: SecretStore, onOpenLogs: () -> Unit, modifier: Modifier = Modifier) {
