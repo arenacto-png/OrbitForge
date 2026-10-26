@@ -46,7 +46,9 @@ class OrbitForgeSmokeTest {
     fun settingsRejectPlainHttpEndpoint() {
         composeRule.onNodeWithText("Настройки").performClick()
         composeRule.onNodeWithText("Базовый URL API").performScrollTo().assertIsDisplayed()
-        composeRule.onAllNodes(hasSetTextAction())[0].performTextClearance().performTextInput("http://invalid.example/v1")
+        val endpointField = composeRule.onAllNodes(hasSetTextAction())[0]
+        endpointField.performTextClearance()
+        endpointField.performTextInput("http://invalid.example/v1")
         composeRule.onNodeWithText("Сохранить настройки").performScrollTo().performClick()
         composeRule.onNodeWithText("Адрес должен начинаться с https://").assertIsDisplayed()
     }
