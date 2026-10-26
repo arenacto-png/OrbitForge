@@ -115,7 +115,6 @@ private fun OrbitForgeTheme(content: @Composable () -> Unit) {
 }
 
 private enum class Destination { Chat, Projects, Editor, Terminal, Settings, Logs }
-private data class ChatMessage(val role: String, val text: String)
 
 @Composable
 private fun OrbitForgeApp(storage: AppStorage, secrets: SecretStore) {
@@ -345,8 +344,14 @@ private fun ChatScreen(storage: AppStorage, secrets: SecretStore, requestScope: 
                                 DiagnosticLog.add(context, "INFO", "Chat", "Request succeeded; responseChars=${answer.length}")
                             }
                             persistHistory(history, storage)
+                        } catch (e: CancellationException) {
+                            ChatRequestRecovery.markCancelled(history, assistantIndex, agentMode)
+                            persistHistory(history, storage)
+                            status = "Запрос отменён"
+                            DiagnosticLog.add(context, "INFO", if (agentMode) "Agent" else "Chat",
+                                "Request cancelled by user")
+                            throw e
                         } catch (e: Exception) {
-                            if (e is CancellationException) throw e
                             val safe = e.message ?: e.javaClass.simpleName
                             if (assistantIndex in history.indices) {
                                 history[assistantIndex] = ChatMessage(
@@ -373,7 +378,11 @@ private fun ChatScreen(storage: AppStorage, secrets: SecretStore, requestScope: 
         }
         if (busy) {
             TextButton(
-                onClick = { activeJob?.cancel(); approvalSignal?.cancel(); busy = false; status = "Запрос отменён" },
+                onClick = {
+                    status = "Останавливаю запрос…"
+                    approvalSignal?.cancel()
+                    activeJob?.cancel()
+                },
                 modifier = Modifier.align(Alignment.End).padding(end = 12.dp)
             ) { Text("Остановить запрос") }
         }
