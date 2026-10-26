@@ -11,7 +11,7 @@
 - GitHub repository listing/creation and one-commit workspace sync, with explicit confirmation and basic secret filtering.
 - SAF folder picker with bounded import/export, private workspace editor, and persistent folder permissions.
 - Diagnostic report copy/share with API/GitHub/MCP token redaction and compact crash traces.
-- GitHub Actions uses Gradle 8.11.1 via the Gradle setup action, runs JVM unit tests, and builds/uploads the debug APK before emulator testing. The emulator test runner has enough disk after cleanup, but the latest run failed while compiling the Compose UI smoke-test source due to unsupported test API usage; the test source has been corrected in PR #5 and awaits CI validation.
+- GitHub Actions uses Gradle 8.11.1 via the Gradle setup action, runs JVM unit tests, and builds/uploads the debug APK before emulator testing. The emulator test runner has enough disk after cleanup, but the latest run failed while compiling the Compose UI smoke-test source due to unsupported test API usage; the test source was corrected once, and CI exposed one remaining chained text-action call that returned Unit; the actions are now split into separate calls and await rerun.
 - Unit tests for provider URL rules, diagnostic redaction, and workspace path traversal.
 
 ## Still requires live verification
