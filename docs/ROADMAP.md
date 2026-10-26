@@ -27,7 +27,7 @@
 ## Milestone 3 — Developer workspace
 - [x] Basic project file list and text editor
 - [x] Basic syntax highlighting for common source/config formats with a large-file plain-text fallback
-- [ ] Editor diff preview and apply/reject
+- [x] Editor diff preview with explicit apply/reject and bounded output
 - [x] Search within workspace (file names and text contents; sensitive content filtered; results open in editor)
 - [x] GitHub token storage, repository listing, and repository creation
 - [x] Push workspace files as a confirmed commit through GitHub Git Data API
