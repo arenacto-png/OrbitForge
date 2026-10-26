@@ -802,7 +802,15 @@ private fun EditorScreen(storage: AppStorage, relativePath: String, onBack: () -
     Column(modifier.fillMaxSize().background(ForgeBackground).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         AppHeader("Редактор файлов", Modifier.padding(horizontal = 0.dp))
         Text(relativePath, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-        OutlinedTextField(value = content, onValueChange = { content = it }, modifier = Modifier.weight(1f).fillMaxWidth(), placeholder = { Text("Содержимое файла") }, maxLines = 1000, shape = RoundedCornerShape(12.dp))
+        OutlinedTextField(
+            value = content,
+            onValueChange = { content = it },
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            placeholder = { Text("Содержимое файла") },
+            maxLines = 1000,
+            shape = RoundedCornerShape(12.dp),
+            visualTransformation = remember(relativePath) { SyntaxHighlightingTransformation.forFile(relativePath) }
+        )
         if (notice.isNotBlank()) Text(notice, color = ForgeMuted, fontSize = 12.sp)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) { Text("Назад") }
