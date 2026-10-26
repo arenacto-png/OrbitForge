@@ -7,13 +7,14 @@
 - Local conversation history and separate encrypted API/GitHub/MCP credentials using Android Keystore.
 - Cancelled chat/agent requests replace the pending assistant placeholder with a durable cancellation result; partial chat output is retained with an incomplete-response marker, and the history is persisted.
 - Bounded tool-calling agent with file listing, reading, search, writes with approval, and allowlisted terminal commands.
+- Workspace screen searches file names and text contents asynchronously, limits displayed results, filters sensitive paths and secret-like content through the existing search policy, and opens matching files in the editor.
 - Editable `SKILL.md` starter skills with bounded loading and untrusted-skill policy.
 - Remote HTTP MCP initialization, tool discovery, and tool calls; each external call requires confirmation.
 - GitHub repository listing/creation and one-commit workspace sync, with explicit confirmation and basic secret filtering.
 - SAF folder picker with bounded import/export, private workspace editor, and persistent folder permissions.
 - Diagnostic report copy/share with API/GitHub/MCP token redaction and compact crash traces.
 - GitHub Actions workflow for unit tests, debug APK, Android emulator UI smoke tests, and test report artifacts.
-- Unit tests for provider URL rules, diagnostic redaction, and workspace path traversal.
+- Unit tests for provider URL rules, diagnostic redaction, workspace path traversal, and safe parsing of workspace search results.
 
 ## Still requires live verification
 
