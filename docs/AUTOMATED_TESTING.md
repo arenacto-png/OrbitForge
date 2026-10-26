@@ -6,8 +6,10 @@ The GitHub Actions workflow runs on pushes, pull requests, or manually from the 
 
 1. Unit tests (`testDebugUnitTest`).
 2. Debug APK build (`assembleDebug`).
-3. Instrumented Compose UI smoke tests on a Pixel 2 Android emulator (API 35).
-4. Uploads the APK and test reports even if a test fails, when those files exist.
+3. Instrumented Compose UI smoke tests on a Pixel 2 Android emulator (API 30).
+4. Uploads the debug APK immediately after a successful build, before emulator testing; uploads test reports when those files exist.
+
+Before starting the emulator, CI removes unrelated preinstalled toolchains from its disposable hosted runner and verifies that at least 9 GiB of free disk space remains. The AVD image may require about 7.3 GB to create its userdata partition; the check is intended to fail early with a clear diagnostic rather than wait for an emulator boot timeout.
 
 ## Current UI smoke coverage
 
@@ -25,17 +27,17 @@ These are smoke tests, not exhaustive functional or security verification. Netwo
 
 ## Run locally
 
-With JDK 17, Android SDK 35, Gradle 8.11.1 and an Android emulator/device configured:
+With JDK 17, Gradle 8.11.1, the Android SDK/platform matching the project's Gradle configuration, and an Android emulator/device configured:
 
 ```bash
-gradle --no-daemon testDebugUnitTest
-gradle --no-daemon assembleDebug
-gradle --no-daemon connectedDebugAndroidTest
+gradle testDebugUnitTest
+gradle assembleDebug
+gradle connectedDebugAndroidTest
 ```
 
 ## Where to find results
 
-In GitHub: **Actions → Android CI → selected run → Artifacts**. Download `OrbitForge-debug-apk` for the APK and `OrbitForge-test-reports` for test output. If the workflow fails, open the failed step and attach its error log or the report artifact to the ChatGPT conversation.
+In GitHub: **Actions → Android CI → selected run → Artifacts**. Download `orbitforge-debug-apk` for the APK and `orbitforge-android-test-reports` for test output. If the workflow fails, open the failed step and attach its error log or the report artifact to the ChatGPT conversation.
 
 ## Limits
 
