@@ -19,7 +19,7 @@ internal object McpResponseBodyReader {
         var total = 0
         while (true) {
             val remaining = maxBytes - total
-            val requested = minOf(buffer.size, remaining + 1)
+            val requested = minOf(buffer.size.toLong(), remaining.toLong() + 1L).toInt()
             val count = input.read(buffer, 0, requested)
             if (count < 0) break
             if (count == 0) {
