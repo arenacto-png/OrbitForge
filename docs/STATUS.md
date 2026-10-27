@@ -11,7 +11,7 @@
 - The file editor applies lightweight syntax coloring to common code/config formats without changing text or cursor offsets; files over 100,000 characters fall back to plain text.
 - Before saving editor changes, the user can inspect a bounded diff and explicitly apply or reject the edit; rejecting restores the original buffer. The preview is capped to 80 lines and 6,000 characters (plus a truncation marker).
 - Editable `SKILL.md` starter skills with bounded loading and untrusted-skill policy.
-- Remote HTTP MCP initialization, tool discovery, and tool calls; each external call requires confirmation.
+- Remote HTTP MCP initialization, tool discovery, and tool calls; each external call requires confirmation. HTTP response bodies are capped at 2 MiB before parsing, and returned text is capped at 20,000 characters.
 - GitHub repository listing/creation and one-commit workspace sync, with explicit confirmation and basic secret filtering.
 - SAF folder picker with bounded import/export, private workspace editor, and persistent folder permissions.
 - Diagnostic report copy/share with API/GitHub/MCP token redaction and compact crash traces.
