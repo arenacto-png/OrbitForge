@@ -9,7 +9,7 @@ The first agent tool set is intentionally small:
 
 The workspace is stored under the app-private `filesDir/orbitforge-workspace` directory. It is not yet an arbitrary user-selected project folder. Paths are canonicalized and constrained to the workspace root to block `..` traversal and symlink escapes.
 
-The agent loop is bounded to eight model/tool rounds. It requires an OpenAI-compatible endpoint that supports function/tool calling. A provider may accept chat completions but not tool calls; in that case normal chat should still be used and agent mode may return a provider error.
+The agent loop is bounded to eight model/tool rounds. It requires an OpenAI-compatible endpoint that supports function/tool calling. A provider may accept chat completions but not tool calls; in that case normal chat should still be used and agent mode may return a provider error. Remote MCP HTTP responses are limited to 2 MiB; individual text results are further capped at 20,000 characters.
 
 
 ## Skills
