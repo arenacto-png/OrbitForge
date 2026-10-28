@@ -141,7 +141,7 @@ class McpSession internal constructor(
                         try {
                             val result = HttpResult(
                                 code = response.code,
-                                body = response.body?.string().orEmpty(),
+                                body = response.body?.byteStream()?.use { McpResponseBodyReader.read(it) }.orEmpty(),
                                 contentType = response.header("Content-Type").orEmpty(),
                                 sessionId = response.header("Mcp-Session-Id")
                             )
