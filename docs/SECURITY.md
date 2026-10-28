@@ -8,7 +8,7 @@
 - Validate tool arguments against explicit schemas.
 - Validate paths before showing approval prompts and restrict file operations to the chosen workspace root; reject traversal and symlink escapes.
 - Ask for approval before destructive writes, shell commands, network access, or publishing changes.
-- Provide cancellation, timeouts, output-size limits, and a bounded number of agent steps. Non-streaming agent-provider and remote MCP HTTP response bodies are capped at 2 MiB before JSON/SSE parsing. Remote MCP HTTP response bodies are capped at 2 MiB before JSON/SSE parsing.
+- Provide cancellation, timeouts, output-size limits, and a bounded number of agent steps. Non-streaming agent-provider and remote MCP HTTP response bodies are capped at 2 MiB before JSON/SSE parsing.
 - Keep command execution isolated from the app process where feasible. Android-local Linux environments have limitations; do not describe PRoot as a strong security sandbox.
 - Never embed a developer-owned secret in the APK.
 
