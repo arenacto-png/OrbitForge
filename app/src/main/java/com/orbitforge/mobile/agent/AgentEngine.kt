@@ -7,6 +7,7 @@ import com.orbitforge.mobile.security.SecretStore
 import com.orbitforge.mobile.mcp.McpTool
 import com.orbitforge.mobile.mcp.McpSession
 import com.orbitforge.mobile.mcp.McpClient
+import com.orbitforge.mobile.network.BoundedResponseBodyReader
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
@@ -160,7 +161,7 @@ class AgentEngine(context: Context) {
                 override fun onResponse(call: Call, response: Response) {
                     response.use {
                         try {
-                            val text = response.body?.string().orEmpty()
+                            val text = response.body?.byteStream()?.use { BoundedResponseBodyReader.read(it) }.orEmpty()
                             if (!response.isSuccessful) {
                                 val safe = DiagnosticLog.redact(text).take(500)
                                 DiagnosticLog.add(appContext, "ERROR", "AgentEngine", "HTTP ${response.code}: $safe")
