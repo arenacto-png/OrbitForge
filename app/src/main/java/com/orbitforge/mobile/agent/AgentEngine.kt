@@ -239,7 +239,7 @@ class AgentEngine(context: Context) {
                     if (remote == null) {
                         "Ошибка: неизвестный инструмент '$name'."
                     } else {
-                        require(args.toString().length <= MAX_ARGUMENT_CHARS) { "Аргументы MCP-инструмента превышают лимит." }
+                        require(args.toString().length <= AgentToolCallParser.MAX_ARGUMENT_CHARS) { "Аргументы MCP-инструмента превышают лимит." }
                         onStatus("Ожидается подтверждение MCP-инструмента: ${remote.name}")
                         if (!approveWrite(WriteApproval("MCP: ${remote.name}", args.toString()))) {
                             "Вызов MCP-инструмента отклонён пользователем."
