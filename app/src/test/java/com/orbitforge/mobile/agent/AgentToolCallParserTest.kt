@@ -108,7 +108,7 @@ class AgentToolCallParserTest {
     }
 
     private fun message(vararg calls: JSONObject): JSONObject =
-        JSONObject().put("tool_calls", JSONArray().apply { calls.forEach(::put) })
+        JSONObject().put("tool_calls", JSONArray().apply { calls.forEach { put(it) } })
 
     private fun call(id: String, name: String, arguments: String): JSONObject =
         JSONObject().put("id", id).put("type", "function").put("function", function(name, arguments))
