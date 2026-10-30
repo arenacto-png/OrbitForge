@@ -35,20 +35,22 @@ internal object AgentToolCallParser {
                 val call = rawCalls.optJSONObject(index)
                     ?: throw IllegalArgumentException("Вызов инструмента #${index + 1} должен быть объектом.")
 
-                val id = call.opt("id") as? String
-                require(!id.isNullOrBlank() && id.length <= MAX_CALL_ID_CHARS &&
-                    id.none { it.code < 0x20 || it.code == 0x7f }) {
+                val idValue = call.opt("id") as? String
+                require(idValue != null && idValue.isNotBlank() && idValue.length <= MAX_CALL_ID_CHARS &&
+                    idValue.none { it.code < 0x20 || it.code == 0x7f }) {
                     "У вызова инструмента #${index + 1} отсутствует корректный идентификатор."
                 }
-                require(seenIds.add(id!!)) { "Ответ модели содержит повторяющийся идентификатор вызова инструмента." }
+                val id = idValue!!
+                require(seenIds.add(id)) { "Ответ модели содержит повторяющийся идентификатор вызова инструмента." }
 
                 val function = call.optJSONObject("function")
                     ?: throw IllegalArgumentException("У вызова инструмента #${index + 1} отсутствует объект function.")
-                val name = function.opt("name") as? String
-                require(!name.isNullOrBlank() && toolNamePattern.matches(name)) {
+                val nameValue = function.opt("name") as? String
+                require(nameValue != null && nameValue.isNotBlank() && toolNamePattern.matches(nameValue)) {
                     "У вызова инструмента #${index + 1} некорректное имя."
                 }
-                require(name in allowedToolNames) {
+                val name = nameValue!!
+                require(allowedToolNames.contains(name)) {
                     "Модель запросила неизвестный инструмент: $name."
                 }
 
