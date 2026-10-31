@@ -50,17 +50,6 @@ class AgentToolCallParserTest {
     }
 
     @Test
-    fun rejectsMissingOrNonFunctionCallTypes() {
-        val missingType = JSONObject()
-            .put("id", "call-1")
-            .put("function", function("read_file", "{}"))
-        expectRejected { AgentToolCallParser.parse(message(missingType), allowedTools) }
-
-        val unsupportedType = call("call-1", "read_file", "{}").put("type", "custom")
-        expectRejected { AgentToolCallParser.parse(message(unsupportedType), allowedTools) }
-    }
-
-    @Test
     fun rejectsMissingOrInvalidCallIdentityAndFunction() {
         expectRejected { AgentToolCallParser.parse(message(JSONObject().put("function", function("read_file", "{}"))), allowedTools) }
         expectRejected { AgentToolCallParser.parse(message(JSONObject().put("id", "call-1")), allowedTools) }

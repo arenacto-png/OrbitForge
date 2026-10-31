@@ -70,10 +70,8 @@ class AgentEngine(context: Context) {
             }
         }
         val remoteToolMap = remoteTools.associateBy { it.exposedName }
-        val allowedToolNames = setOf(
-            "list_files", "read_file", "search_text", "run_command", "write_file"
-        ) + remoteToolMap.keys
         val availableTools = toolDefinitions(remoteTools)
+        val allowedToolNames = AgentToolDefinitionNames.from(availableTools)
         val loadedSkills = skillManager.loadEnabledSkills()
         val skillGuidance = loadedSkills.joinToString("\n\n") { skill ->
             "### Skill: ${skill.name} (${skill.relativePath})\n${skill.content}"

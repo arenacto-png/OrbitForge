@@ -35,11 +35,6 @@ internal object AgentToolCallParser {
                 val call = rawCalls.optJSONObject(index)
                     ?: throw IllegalArgumentException("Вызов инструмента #${index + 1} должен быть объектом.")
 
-                val typeValue = call.opt("type") as? String
-                require(typeValue == "function") {
-                    "Вызов инструмента #${index + 1} должен иметь тип function."
-                }
-
                 val idValue = call.opt("id") as? String
                 require(idValue != null && idValue.isNotBlank() && idValue.length <= MAX_CALL_ID_CHARS &&
                     idValue.none { it.code < 0x20 || it.code == 0x7f }) {
