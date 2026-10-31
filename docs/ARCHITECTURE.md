@@ -6,7 +6,7 @@
 - `AppStorage`: non-secret preferences, bounded chat history, and selected external-folder URI.
 - `security/SecretStore`: AES/GCM-encrypted user credentials with Android Keystore keys (API, GitHub, MCP).
 - `ai/OpenAiCompatibleClient`: streaming Chat Completions over SSE.
-- `agent/AgentEngine`: bounded tool-calling loop with cancellation, status updates, and explicit approval callbacks.
+- `agent/AgentEngine`: bounded tool-calling loop with cancellation, status updates, and explicit approval callbacks. `AgentToolCallParser` validates complete tool-call batches before execution; `AgentExecutionBudget` reserves the final model round for a completion response.
 - `agent/WorkspaceTools` + `WorkspacePathPolicy`: app-private workspace operations and canonical-path boundaries.
 - `agent/WorkspaceTerminal`: allowlisted commands only; no arbitrary shell.
 - `agent/SkillManager`: loads editable `SKILL.md` guidance as untrusted reference material.

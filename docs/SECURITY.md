@@ -9,6 +9,8 @@
 - Validate paths before showing approval prompts and restrict file operations to the chosen workspace root; reject traversal and symlink escapes.
 - Ask for approval before destructive writes, shell commands, network access, or publishing changes.
 - Provide cancellation, timeouts, output-size limits, and a bounded number of agent steps. Non-streaming agent-provider and remote MCP HTTP response bodies are capped at 2 MiB before JSON/SSE parsing.
+- Validate the entire provider tool-call batch before executing any call. Reject malformed arrays/entries, duplicate call IDs, unknown tool names, and malformed or non-object JSON arguments; never substitute empty arguments after a parse failure.
+- Limit the agent to eight model rounds and eight tool calls per round. Do not execute tool calls returned in the final permitted round, because there is no remaining model round to process their results.
 - Keep command execution isolated from the app process where feasible. Android-local Linux environments have limitations; do not describe PRoot as a strong security sandbox.
 - Never embed a developer-owned secret in the APK.
 

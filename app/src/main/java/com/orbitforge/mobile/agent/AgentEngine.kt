@@ -70,6 +70,9 @@ class AgentEngine(context: Context) {
             }
         }
         val remoteToolMap = remoteTools.associateBy { it.exposedName }
+        val allowedToolNames = setOf(
+            "list_files", "read_file", "search_text", "run_command", "write_file"
+        ) + remoteToolMap.keys
         val availableTools = toolDefinitions(remoteTools)
         val loadedSkills = skillManager.loadEnabledSkills()
         val skillGuidance = loadedSkills.joinToString("\n\n") { skill ->
@@ -88,8 +91,10 @@ class AgentEngine(context: Context) {
             .put(JSONObject().put("role", "system").put("content", systemPrompt))
             .put(JSONObject().put("role", "user").put("content", userTask))
 
-        repeat(MAX_STEPS) { step ->
-            onStatus("Запрос к модели · шаг ${step + 1}/$MAX_STEPS")
+        val budget = AgentExecutionBudget()
+        while (true) {
+            val step = budget.beginModelRound()
+            onStatus("Запрос к модели · шаг $step/${AgentExecutionBudget.MAX_MODEL_ROUNDS}")
             val response = requestTools(config, apiKey, history, availableTools)
             val choices = response.optJSONArray("choices")
                 ?: throw IOException("Ответ API не содержит choices.")
@@ -97,36 +102,36 @@ class AgentEngine(context: Context) {
                 ?: throw IOException("Ответ API не содержит message.")
             history.put(message)
 
-            val toolCalls = message.optJSONArray("tool_calls")
-            if (toolCalls == null || toolCalls.length() == 0) {
+            val toolCalls = AgentToolCallParser.parse(message, allowedToolNames)
+            if (toolCalls.isEmpty()) {
                 val content = message.optString("content").orEmpty()
                 return content.ifBlank { "Агент завершил задачу без текстового ответа." }
             }
 
-            require(toolCalls.length() <= MAX_TOOL_CALLS_PER_STEP) {
-                "Модель запросила слишком много инструментов за один шаг (лимит $MAX_TOOL_CALLS_PER_STEP)."
+            if (!budget.canExecuteToolCalls()) {
+                throw IOException(
+                    "Агент достиг лимита ${AgentExecutionBudget.MAX_MODEL_ROUNDS} запросов к модели; " +
+                        "вызовы инструментов последнего шага не выполнялись."
+                )
             }
-            for (index in 0 until toolCalls.length()) {
-                val call = toolCalls.optJSONObject(index) ?: continue
-                val callId = call.optString("id")
-                val function = call.optJSONObject("function") ?: JSONObject()
-                val name = function.optString("name")
-                val rawArguments = function.optString("arguments", "{}")
-                require(rawArguments.length <= MAX_ARGUMENT_CHARS) { "Аргументы инструмента превышают лимит." }
-                val args = try {
-                    JSONObject(rawArguments)
-                } catch (_: Exception) {
-                    JSONObject()
-                }
-                onStatus("Инструмент: $name")
-                val result = executeTool(name, args, approveWrite, onStatus, mcpSession, remoteToolMap)
+
+            // Parse and validate the entire batch before the first tool can cause a side effect.
+            for (toolCall in toolCalls) {
+                onStatus("Инструмент: ${toolCall.name}")
+                val result = executeTool(
+                    toolCall.name,
+                    toolCall.arguments,
+                    approveWrite,
+                    onStatus,
+                    mcpSession,
+                    remoteToolMap
+                )
                 history.put(JSONObject()
                     .put("role", "tool")
-                    .put("tool_call_id", callId)
+                    .put("tool_call_id", toolCall.id)
                     .put("content", result))
             }
         }
-        throw IOException("Агент достиг лимита $MAX_STEPS шагов. Разбей задачу на более мелкие.")
     }
 
     private suspend fun requestTools(
@@ -234,7 +239,7 @@ class AgentEngine(context: Context) {
                     if (remote == null) {
                         "Ошибка: неизвестный инструмент '$name'."
                     } else {
-                        require(args.toString().length <= MAX_ARGUMENT_CHARS) { "Аргументы MCP-инструмента превышают лимит." }
+                        require(args.toString().length <= AgentToolCallParser.MAX_ARGUMENT_CHARS) { "Аргументы MCP-инструмента превышают лимит." }
                         onStatus("Ожидается подтверждение MCP-инструмента: ${remote.name}")
                         if (!approveWrite(WriteApproval("MCP: ${remote.name}", args.toString()))) {
                             "Вызов MCP-инструмента отклонён пользователем."
@@ -304,9 +309,4 @@ class AgentEngine(context: Context) {
     private fun stringSchema(description: String): JSONObject =
         JSONObject().put("type", "string").put("description", description)
 
-    companion object {
-        private const val MAX_STEPS = 8
-        private const val MAX_TOOL_CALLS_PER_STEP = 8
-        private const val MAX_ARGUMENT_CHARS = 20_000
-    }
 }
