@@ -130,6 +130,26 @@ class WorkspaceSyncPlannerTest {
     }
 
     @Test
+    fun rejectsOversizedRemoteDiffPayload() {
+        val local = (1..41).map { index ->
+            val content = "new-" + index
+            WorkspaceSyncCandidate("file-" + index + ".txt", content, GitBlobHash.sha1(content))
+        }
+        val remoteShas = local.associate { it.path to GitBlobHash.sha1("old-" + it.path) }
+        val remoteContents = local.associate { it.path to "old-" + it.path }
+        val remoteModes = local.associate { it.path to "100644" }
+        try {
+            WorkspaceSyncPlanner.create(
+                "owner/repo", "main", head, tree,
+                local, remoteShas, remoteModes, remoteContents, emptySet(), 0
+            )
+            fail("More than 40 remote diffs must be rejected")
+        } catch (_: IllegalArgumentException) {
+            // Expected.
+        }
+    }
+
+    @Test
     fun noChangesProduceNoCommitEntries() {
         val content = "same"
         val plan = WorkspaceSyncPlanner.create(

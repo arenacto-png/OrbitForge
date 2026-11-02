@@ -20,8 +20,6 @@ import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resumeWithException
 
-data class SyncResult(val uploadedFiles: Int, val skippedFiles: Int, val branch: String, val commitSha: String)
-
 data class GitHubRepository(
     val fullName: String,
     val htmlUrl: String,
@@ -145,13 +143,25 @@ class GitHubRepositoryClient {
             }
         }
 
+        val modifiedCandidates = local.candidates.filter { candidate ->
+            val remoteSha = remoteBlobShas[candidate.path]
+            remoteSha != null && remoteSha != candidate.blobSha
+        }
+        require(modifiedCandidates.size <= WorkspaceSyncPlanner.MAX_REMOTE_DIFF_FILES) {
+            "Слишком много изменённых удалённых файлов для одного предпросмотра (лимит " +
+                WorkspaceSyncPlanner.MAX_REMOTE_DIFF_FILES + "). Раздели синхронизацию на меньшие части."
+        }
         val remoteContents = linkedMapOf<String, String>()
-        for (candidate in local.candidates) {
+        var remoteDiffBytes = 0L
+        for (candidate in modifiedCandidates) {
             val remoteSha = remoteBlobShas[candidate.path] ?: continue
-            if (remoteSha == candidate.blobSha) continue
             val remoteSize = remoteSizes[candidate.path] ?: -1L
             require(remoteSize in 0..MAX_FILE_BYTES) {
                 "Удалённый файл " + candidate.path + " превышает лимит 200 КБ; безопасный diff не построен."
+            }
+            remoteDiffBytes += remoteSize
+            require(remoteDiffBytes <= WorkspaceSyncPlanner.MAX_REMOTE_DIFF_BYTES) {
+                "Удалённые версии изменённых файлов превышают общий лимит diff 2 МБ."
             }
             val blob = getJson(
                 token,

@@ -59,6 +59,8 @@ internal object GitBlobHash {
 
 internal object WorkspaceSyncPlanner {
     const val MAX_PREVIEW_CHARS = 12_000
+    const val MAX_REMOTE_DIFF_FILES = 40
+    const val MAX_REMOTE_DIFF_BYTES = 2 * 1024 * 1024
     private const val MAX_FILE_PREVIEW_LINES = 40
 
     fun validateRelativePath(path: String): String {
@@ -93,6 +95,13 @@ internal object WorkspaceSyncPlanner {
         require(baseTreeSha.matches(Regex("[0-9a-f]{40}"))) { "Некорректный SHA дерева Git." }
         require(skippedFiles >= 0) { "Количество пропущенных файлов не может быть отрицательным." }
         require(candidates.size <= 200) { "Превышен лимит 200 файлов для синхронизации." }
+        require(remoteContents.size <= MAX_REMOTE_DIFF_FILES) {
+            "Слишком много удалённых файлов для полного diff."
+        }
+        val remoteDiffBytes = remoteContents.values.sumOf { it.toByteArray(Charsets.UTF_8).size.toLong() }
+        require(remoteDiffBytes <= MAX_REMOTE_DIFF_BYTES) {
+            "Удалённые версии изменённых файлов превышают общий лимит diff 2 МБ."
+        }
 
         val seen = mutableSetOf<String>()
         val changes = mutableListOf<WorkspaceSyncChange>()
