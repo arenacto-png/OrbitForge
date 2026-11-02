@@ -83,6 +83,7 @@ import com.orbitforge.mobile.ai.ProviderConfig
 import com.orbitforge.mobile.diagnostics.DiagnosticLog
 import com.orbitforge.mobile.github.GitHubRepositoryClient
 import com.orbitforge.mobile.github.GitHubRepository
+import com.orbitforge.mobile.github.WorkspaceSyncPlan
 import com.orbitforge.mobile.mcp.McpClient
 import com.orbitforge.mobile.security.SecretStore
 import kotlinx.coroutines.CancellationException
@@ -895,6 +896,7 @@ private fun SettingsScreen(storage: AppStorage, secrets: SecretStore, onOpenLogs
     var repoName by remember { mutableStateOf("OrbitForge") }
     var repoTarget by remember { mutableStateOf("") }
     var confirmPush by remember { mutableStateOf(false) }
+    var syncPlan by remember { mutableStateOf<WorkspaceSyncPlan?>(null) }
     var repoDescription by remember { mutableStateOf("Android AI development workspace") }
     var repoPrivate by remember { mutableStateOf(true) }
     var githubBusy by remember { mutableStateOf(false) }
@@ -1121,16 +1123,38 @@ private fun SettingsScreen(storage: AppStorage, secrets: SecretStore, onOpenLogs
                 OutlinedButton(
                     enabled = !githubBusy,
                     onClick = {
-                        if (secrets.readGitHubToken().isBlank() && githubToken.isBlank()) {
+                        val token = githubToken.takeIf { it.isNotBlank() } ?: secrets.readGitHubToken()
+                        if (token.isBlank()) {
                             notice = "Сначала сохрани GitHub token."
                         } else if (!repoTarget.matches(Regex("[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+"))) {
                             notice = "Укажи репозиторий в формате owner/name или выбери его из списка."
                         } else {
-                            confirmPush = true
+                            githubBusy = true
+                            notice = "Сравниваю рабочую папку с удалённой веткой…"
+                            scope.launch {
+                                try {
+                                    val plan = githubClient.prepareWorkspaceSync(token, repoTarget, storage.workspace())
+                                    syncPlan = plan
+                                    if (plan.changes.isEmpty()) {
+                                        notice = "Изменений нет. Без изменений: " + plan.unchangedFiles +
+                                            "; пропущено: " + plan.skippedFiles + "."
+                                    } else {
+                                        confirmPush = true
+                                        notice = "Предпросмотр готов: добавлено " + plan.addedFiles +
+                                            ", изменено " + plan.modifiedFiles + "."
+                                    }
+                                } catch (e: Exception) {
+                                    syncPlan = null
+                                    notice = e.message ?: "Не удалось сравнить рабочую папку с GitHub."
+                                    DiagnosticLog.add(context, "ERROR", "GitHub", "Sync preview failed: " + e.javaClass.simpleName + ": " + (e.message ?: "no details"))
+                                } finally {
+                                    githubBusy = false
+                                }
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth()
-                ) { Text("Отправить рабочую папку в GitHub") }
+                ) { Text(if (githubBusy) "Сравниваю…" else "Проверить изменения перед отправкой") }
                 repositories.forEach { repo ->
                     Column(
                         Modifier.fillMaxWidth().clickable { repoTarget = repo.fullName }
@@ -1153,30 +1177,63 @@ private fun SettingsScreen(storage: AppStorage, secrets: SecretStore, onOpenLogs
         }
     }
     if (confirmPush) {
+        val plan = syncPlan
         AlertDialog(
-            onDismissRequest = { confirmPush = false },
-            title = { Text("Отправить файлы в GitHub?") },
+            onDismissRequest = { confirmPush = false; syncPlan = null },
+            title = { Text("Проверка GitHub diff") },
             text = {
-                Text("OrbitForge создаст один commit в $repoTarget. Отправляются текстовые файлы из внутренней рабочей папки; известные секретные файлы, бинарники и файлы с похожими на токены строками пропускаются. Перед отправкой проверь содержимое рабочей папки.")
+                if (plan == null) {
+                    Text("План синхронизации больше недоступен. Построй предпросмотр заново.")
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Репозиторий: " + plan.repositoryFullName + " · ветка " + plan.branch, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "Добавлено: " + plan.addedFiles +
+                                " · изменено: " + plan.modifiedFiles +
+                                " · без изменений: " + plan.unchangedFiles +
+                                " · пропущено: " + plan.skippedFiles,
+                            color = ForgeMuted,
+                            fontSize = 12.sp
+                        )
+                        Text("Удалённые файлы не удаляются. Commit будет создан только после повторной проверки ветки и локальных файлов.", color = ForgeMuted, fontSize = 12.sp)
+                        Column(
+                            Modifier.heightIn(max = 320.dp).fillMaxWidth()
+                                .background(ForgeSurface, RoundedCornerShape(8.dp))
+                                .padding(10.dp).verticalScroll(rememberScrollState())
+                        ) {
+                            Text(plan.preview, fontSize = 11.sp, color = Color(0xFFD5D9E3))
+                        }
+                    }
+                }
             },
             confirmButton = {
-                Button(onClick = {
+                Button(enabled = plan != null && !githubBusy, onClick = {
+                    val reviewedPlan = syncPlan ?: return@Button
                     confirmPush = false
                     githubBusy = true
                     val token = githubToken.takeIf { it.isNotBlank() } ?: secrets.readGitHubToken()
                     scope.launch {
                         try {
-                            val result = githubClient.pushWorkspace(token, repoTarget, storage.workspace())
-                            notice = "Синхронизация завершена: ${result.uploadedFiles} файлов отправлено, ${result.skippedFiles} пропущено, ветка ${result.branch}."
-                            DiagnosticLog.add(context, "INFO", "GitHub", "Workspace sync complete: uploaded=${result.uploadedFiles}; skipped=${result.skippedFiles}; branch=${result.branch}")
+                            val result = githubClient.commitWorkspaceSync(token, reviewedPlan, storage.workspace())
+                            notice = "Commit " + result.commitSha.take(7) + " создан: добавлено " +
+                                result.addedFiles + ", изменено " + result.modifiedFiles +
+                                ", без изменений " + result.unchangedFiles + ", пропущено " + result.skippedFiles + "."
+                            DiagnosticLog.add(context, "INFO", "GitHub", "Workspace commit created: sha=" + result.commitSha +
+                                "; added=" + result.addedFiles + "; modified=" + result.modifiedFiles +
+                                "; unchanged=" + result.unchangedFiles + "; skipped=" + result.skippedFiles)
                         } catch (e: Exception) {
                             notice = e.message ?: "Синхронизация не удалась."
-                            DiagnosticLog.add(context, "ERROR", "GitHub", "Workspace sync failed: ${e.javaClass.simpleName}: ${e.message ?: "no details"}")
-                        } finally { githubBusy = false }
+                            DiagnosticLog.add(context, "ERROR", "GitHub", "Workspace sync failed: " + e.javaClass.simpleName + ": " + (e.message ?: "no details"))
+                        } finally {
+                            githubBusy = false
+                            syncPlan = null
+                        }
                     }
-                }) { Text("Подтвердить отправку") }
+                }) { Text("Создать commit и отправить") }
             },
-            dismissButton = { TextButton(onClick = { confirmPush = false }) { Text("Отмена") } }
+            dismissButton = {
+                TextButton(onClick = { confirmPush = false; syncPlan = null }) { Text("Отмена") }
+            }
         )
     }
 }
