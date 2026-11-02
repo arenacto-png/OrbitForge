@@ -23,3 +23,8 @@
 - No shell/terminal tool is available in this milestone.
 
 - Agent file-read/search/agent-write tools reject common secret files such as `.env`, `local.properties`, keystores, PEM/P12 files, and SSH key paths. User-initiated editor access remains separate.
+
+
+## GitHub workspace commit safety
+
+Workspace synchronization is a two-phase operation: a read-only comparison produces a bounded diff, then the user explicitly confirms the reviewed plan. The app rechecks the remote branch head and local file contents immediately before committing. The branch ref update is non-force, and remote files not represented locally are preserved. Symbolic links, unsupported remote Git object modes, secret-like content, oversized files, binary files, truncated remote trees, and incomplete diff previews are rejected or skipped before commit.

@@ -31,7 +31,8 @@
 - [x] Search within workspace (file names and text contents; sensitive content filtered; results open in editor)
 - [x] GitHub token storage, repository listing, and repository creation
 - [x] Push workspace files as a confirmed commit through GitHub Git Data API
-- [ ] Git status/diff/commit support
+- [ ] Local Git status/diff/commit support
+- [x] GitHub workspace sync preview with added/modified/unchanged classification and stale-plan checks (remote GitHub sync; not local Git)
 
 ## Milestone 4 — Runtime and extensibility
 - [x] Limited app-private workspace terminal with command allowlist
