@@ -10,6 +10,7 @@ import org.eclipse.jgit.lib.FileMode
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.treewalk.EmptyTreeIterator
+import org.eclipse.jgit.treewalk.FileTreeIterator
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
@@ -277,10 +278,23 @@ class LocalGitRepository {
             }
         }
 
-        val unstaged = git.diff().call()
+        val unstaged = if (head == null) {
+            val scanner = DiffFormatter(ByteArrayOutputStream())
+            try {
+                scanner.setRepository(repository)
+                scanner.scan(
+                    DirCacheIterator(repository.readDirCache()),
+                    FileTreeIterator(repository)
+                ).filterNot { status.untracked.contains(it.newPath) }
+            } finally {
+                scanner.close()
+            }
+        } else {
+            git.diff().call()
+        }
         if (unstaged.isNotEmpty()) {
             DiffFormatter(output).use { formatter ->
-                formatter.setRepository(git.repository)
+                formatter.setRepository(repository)
                 formatter.setContext(3)
                 formatter.format(unstaged)
             }
