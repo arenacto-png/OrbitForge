@@ -28,6 +28,25 @@ class LocalGitRepositoryTest {
     }
 
     @Test
+    fun doesNotDiscoverAParentRepository() {
+        val parent = temporaryFolder.newFolder("parent-repository")
+        localGit.initialize(parent)
+        val child = File(parent, "child").apply { mkdirs() }
+
+        assertFalse(localGit.isInitialized(child))
+        assertThrows(IllegalArgumentException::class.java) { localGit.status(child) }
+    }
+
+    @Test
+    fun rejectsWorkspaceSymlinksBeforeDiffOrCommit() {
+        val root = initializedWorkspace()
+        val outside = temporaryFolder.newFile("outside.txt").apply { writeText("outside\n", Charsets.UTF_8) }
+        java.nio.file.Files.createSymbolicLink(File(root, "link.txt").toPath(), outside.toPath())
+
+        assertThrows(IllegalArgumentException::class.java) { localGit.prepareCommit(root) }
+    }
+
+    @Test
     fun previewsUntrackedFileAndCreatesReviewedLocalCommit() {
         val root = initializedWorkspace()
         File(root, "README.md").writeText("# OrbitForge\n", Charsets.UTF_8)
