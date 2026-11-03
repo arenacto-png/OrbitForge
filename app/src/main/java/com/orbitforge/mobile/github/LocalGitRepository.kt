@@ -219,7 +219,7 @@ class LocalGitRepository {
                 "Изменённые файлы превышают общий лимит локального commit 2 МБ."
             }
             val content = decodeText(bytes, path)
-            require(!looksLikeSecretContent(content)) {
+            require(!LocalGitDiffRedactor.looksLikeSecretContent(content)) {
                 "Commit заблокирован: содержимое " + path + " похоже на секрет или токен."
             }
             expectedShas[path] = GitBlobHash.sha1(bytes)
@@ -295,11 +295,7 @@ class LocalGitRepository {
         }
         // A tracked file may have had secret-like content in HEAD/index even when the current
         // working copy is clean. Redact the entire preview rather than leaking removed values.
-        return if (looksLikeSecretContent(result)) {
-            "Предпросмотр diff скрыт: обнаружено содержимое, похожее на секрет."
-        } else {
-            result.ifBlank { "Нет локальных изменений." }
-        }
+        return LocalGitDiffRedactor.redactIfSecretLike(result).ifBlank { "Нет локальных изменений." }
     }
 
     /**
@@ -326,7 +322,7 @@ class LocalGitRepository {
 
             val bytes = readIndexEntry(repository, entry)
             val content = decodeText(bytes, entry.pathString)
-            if (isSensitivePath(entry.pathString) || looksLikeSecretContent(content)) {
+            if (isSensitivePath(entry.pathString) || LocalGitDiffRedactor.looksLikeSecretContent(content)) {
                 appendRedactedDiffSummary(output, entry.pathString, "staged content omitted")
             } else {
                 appendWholeFileDiff(output, entry.pathString, null, content, entry.fileMode)
@@ -541,15 +537,6 @@ class LocalGitRepository {
             normalized.split('/').any { it == ".ssh" || it == ".aws" }
     }
 
-    private fun looksLikeSecretContent(content: String): Boolean {
-        val patterns = listOf(
-            Regex("""(?i)(api[_-]?key|access[_-]?token|github[_-]?token|client[_-]?secret|password)\s*[:=]\s*["']?[A-Za-z0-9_./+=-]{20,}"""),
-            Regex("(?i)(sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})"),
-            Regex("""(?i)Bearer\s+[A-Za-z0-9._~+/=-]{20,}""")
-        )
-        return patterns.any { it.containsMatchIn(content) }
-    }
-
     private fun writeUtf8(output: ByteArrayOutputStream, value: String) {
         output.write(value.toByteArray(Charsets.UTF_8))
     }
@@ -599,4 +586,23 @@ class LocalGitRepository {
 
         private val locks = ConcurrentHashMap<String, ReentrantLock>()
     }
+}
+
+
+/** Shared scanner/redactor so tracked-base and working-copy diff paths use the same policy. */
+internal object LocalGitDiffRedactor {
+    private const val REDACTED_PREVIEW =
+        "Предпросмотр diff скрыт: обнаружено содержимое, похожее на секрет."
+
+    fun looksLikeSecretContent(content: String): Boolean {
+        val patterns = listOf(
+            Regex("""(?i)(api[_-]?key|access[_-]?token|github[_-]?token|client[_-]?secret|password)\s*[:=]\s*["']?[A-Za-z0-9_./+=-]{20,}"""),
+            Regex("(?i)(sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})"),
+            Regex("""(?i)Bearer\s+[A-Za-z0-9._~+/=-]{20,}""")
+        )
+        return patterns.any { it.containsMatchIn(content) }
+    }
+
+    fun redactIfSecretLike(diff: String): String =
+        if (looksLikeSecretContent(diff)) REDACTED_PREVIEW else diff
 }

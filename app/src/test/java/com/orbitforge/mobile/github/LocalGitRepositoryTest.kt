@@ -179,16 +179,21 @@ class LocalGitRepositoryTest {
     }
 
     @Test
-    fun redactsSecretLikeContentFromTrackedBaseDiff() {
-        val root = initializedWorkspace()
+    fun redactsSecretLikeValuesFromDiffPreview() {
         val secret = "123456789012345678901234"
-        seedCommit(root, "config.txt", "api_key = \"$secret\"\n")
-        File(root, "config.txt").writeText("api_key = \"removed\"\n", Charsets.UTF_8)
+        val diff = "diff --git a/config.txt b/config.txt\n-api_key = \"$secret\"\n+api_key = \"removed\"\n"
 
-        val plan = localGit.prepareCommit(root)
+        val safePreview = LocalGitDiffRedactor.redactIfSecretLike(diff)
 
-        assertFalse(plan.diff.contains(secret))
-        assertTrue(plan.diff.contains("скрыт"))
+        assertFalse(safePreview.contains(secret))
+        assertTrue(safePreview.contains("скрыт"))
+    }
+
+    @Test
+    fun preservesDiffWithoutSecretLikeValues() {
+        val diff = "diff --git a/readme.txt b/readme.txt\n+hello\n"
+
+        assertEquals(diff, LocalGitDiffRedactor.redactIfSecretLike(diff))
     }
 
     private fun seedCommit(root: File, path: String, content: String) {
