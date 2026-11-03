@@ -338,7 +338,7 @@ class LocalGitRepository {
             val newContent = if (file.exists()) decodeText(readWorkingFile(file), path) else null
             if (newContent == oldContent) continue
 
-            if (isSensitivePath(path) || looksLikeSecretContent(oldContent)) {
+            if (isSensitivePath(path) || LocalGitDiffRedactor.looksLikeSecretContent(oldContent)) {
                 appendRedactedDiffSummary(
                     output,
                     path,
