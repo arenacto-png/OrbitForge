@@ -17,7 +17,7 @@
 - SAF folder picker with bounded import/export, private workspace editor, and persistent folder permissions.
 - Diagnostic report copy/share with API/GitHub/MCP token redaction and compact crash traces.
 - GitHub Actions workflow on main runs JVM unit tests and builds/uploads a debug APK. Android emulator UI smoke tests are not part of the current main workflow.
-- Unit tests for provider URL rules, diagnostic redaction, workspace path traversal and symlink escapes, strict agent tool-call parsing and round limits, safe workspace-search parsing, syntax highlighting spans/large-file fallback, bounded diff previews, and local Git init/status/diff/commit safety.
+- Unit tests for provider URL rules, diagnostic redaction, workspace path traversal and symlink escapes, strict agent tool-call parsing and round limits, safe workspace-search parsing, syntax highlighting spans/large-file fallback, bounded diff previews, local Git init/status/diff/commit safety, and strict terminal command parsing.
 
 ## Still requires live verification
 
@@ -30,7 +30,7 @@
 
 ## Known scope limits
 
-- Terminal is an allowlisted workspace command runner, not a full Linux shell. Termux/remote execution is not yet implemented.
+- Terminal is an allowlisted workspace command runner, not a full Linux shell. Its stateful tokenizer handles quoted arguments and rejects unmatched quotes, multiline input, backslash escape syntax, and shell-control operators outside quotes; quoted operator characters remain literal. Termux/remote execution is not yet implemented.
 - Local Git status/diff/commit is implemented for the app-private workspace with JGit; partial staging and remote push/pull are not implemented. GitHub synchronization remains a separate REST Git Data API flow with bounded preview and stale-plan checks; it does not delete remote files.
 - MCP support is remote HTTPS only; local stdio servers and some OAuth flows are not supported.
 - Workspace sync uploads the app-private workspace contents, not this source archive automatically.

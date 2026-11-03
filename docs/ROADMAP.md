@@ -36,6 +36,7 @@
 
 ## Milestone 4 — Runtime and extensibility
 - [x] Limited app-private workspace terminal with command allowlist
+- [x] Stateful terminal argument parser with quote validation and shell-control rejection tests
 - [ ] Optional Termux/remote runtime adapter
 - [x] Skills (`SKILL.md`) loader with editable starter skills and size limits
 - [x] Single remote MCP endpoint with tool discovery/calls, approval before every external tool call, and shared 2 MiB HTTP response bounds for MCP and non-streaming agent-provider calls
