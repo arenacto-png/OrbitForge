@@ -11,13 +11,7 @@ class WorkspaceTerminal(context: Context) {
     private val root = tools.root
 
     fun execute(commandLine: String): String {
-        val input = commandLine.trim()
-        require(input.isNotBlank()) { "Введи команду. Напиши help для списка команд." }
-        require(input.length <= 1000) { "Команда слишком длинная (лимит 1000 символов)." }
-        require(!containsShellSyntax(input)) {
-            "Shell-операторы не поддерживаются. Команды выполняются по отдельности внутри рабочей папки."
-        }
-        val args = tokenize(input)
+        val args = TerminalCommandParser.parse(commandLine)
         val command = args.firstOrNull()?.lowercase().orEmpty()
         val params = args.drop(1)
 
@@ -79,22 +73,7 @@ class WorkspaceTerminal(context: Context) {
         }
     }
 
-    fun isMutating(commandLine: String): Boolean =
-        tokenize(commandLine.trim()).firstOrNull()?.lowercase() in setOf("mkdir", "touch")
-
-    private fun containsShellSyntax(input: String): Boolean {
-        val forbidden = listOf(";", "&&", "||", "|", ">", "<", "`", "$(", "\n", "\r")
-        return forbidden.any { input.contains(it) }
-    }
-
-    private fun tokenize(input: String): List<String> {
-        val result = mutableListOf<String>()
-        val tokenPattern = Regex("\"([^\"]*)\"|'([^']*)'|(\\S+)")
-        tokenPattern.findAll(input).forEach { match ->
-            result += match.groups[1]?.value ?: match.groups[2]?.value ?: match.groups[3]?.value.orEmpty()
-        }
-        return result
-    }
+    fun isMutating(commandLine: String): Boolean = TerminalCommandParser.isMutating(commandLine)
 
     companion object {
         private const val MAX_OUTPUT_CHARS = 20_000

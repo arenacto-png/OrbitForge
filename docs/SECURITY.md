@@ -20,7 +20,7 @@
 - The first agent tools are limited to listing files, reading UTF-8 text, and writing UTF-8 files in the app-private workspace.
 - Write operations are capped at 10 KB and require explicit confirmation in the UI.
 - Workspace paths are canonicalized and checked against the workspace root to block ordinary traversal and symlink escapes.
-- No shell/terminal tool is available in this milestone.
+- The workspace terminal uses a stateful tokenizer rather than a system shell. It rejects unmatched quotes, multiline input, unsupported backslash escapes, and shell-control operators outside quoted arguments; quoted operator characters are treated as data.
 
 - Agent file-read/search/agent-write tools reject common secret files such as `.env`, `local.properties`, keystores, PEM/P12 files, and SSH key paths. User-initiated editor access remains separate.
 
