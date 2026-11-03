@@ -24,6 +24,14 @@ class AppStorage(context: Context) {
         get() = prefs.getString("project_tree_uri", "") ?: ""
         set(value) { prefs.edit().putString("project_tree_uri", value).apply() }
 
+    var gitAuthorName: String
+        get() = prefs.getString("git_author_name", "") ?: ""
+        set(value) { prefs.edit().putString("git_author_name", value.trim()).apply() }
+
+    var gitAuthorEmail: String
+        get() = prefs.getString("git_author_email", "") ?: ""
+        set(value) { prefs.edit().putString("git_author_email", value.trim()).apply() }
+
     fun workspace(): File = File(appContext.filesDir, "orbitforge-workspace").apply { mkdirs() }
 
     fun loadMessages(): JSONArray = try {

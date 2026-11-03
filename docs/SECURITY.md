@@ -31,3 +31,7 @@ Workspace synchronization is a two-phase operation: a read-only comparison produ
 
 
 Remote diff retrieval is additionally limited to 40 modified remote files and 2 MiB of combined old-file content so a large repository cannot make the preview retain an unbounded amount of data.
+
+## Local Git commit safety
+
+Local Git opens only the `.git` directory directly inside OrbitForge's app-private workspace; it never discovers or modifies a parent repository and has no remote push/pull path. Before a commit, the user reviews a bounded diff covering staged, unstaged, and untracked text changes. The commit stages only paths included in the reviewed plan (partial staging is not supported), validates relative paths and symlink boundaries, rejects sensitive filenames (including tracked deletions), secret-like current content, binary/non-UTF-8 files, conflicts, and oversized changes, then rechecks the reviewed snapshot and staged blob hashes. If an old/staged diff contains secret-like values, the whole preview is replaced with a redacted summary. Limits are 200 changed paths, 200 KiB per file, 2 MiB total working content, 30 diff files, and 200 KiB of diff output. Secret scanning is defense-in-depth, not a guarantee; the user should inspect the preview.

@@ -12,6 +12,7 @@
 - `agent/SkillManager`: loads editable `SKILL.md` guidance as untrusted reference material.
 - `agent/WorkspaceTransfer`: bounded import/export through Android Storage Access Framework.
 - `github/GitHubRepositoryClient`: list/create repositories and confirmed workspace sync as one Git Data API commit.
+- `github/LocalGitRepository`: JGit-backed status, staged/unstaged/untracked diff preview, and user-reviewed local commits confined to the app-private workspace.
 - `mcp/McpClient`: one configured remote HTTP MCP endpoint; every tool call requires user approval.
 - `diagnostics/DiagnosticLog`: bounded persistent logs, redaction, and crash traces.
 
@@ -27,4 +28,4 @@
 
 ## Future decomposition
 
-The folders currently organize code within the `app` module. Separate Gradle modules for domain, data, runtime, and feature screens can be extracted when the codebase and test suite justify that complexity. Local Git status/diff, syntax-aware editing, remote execution, and full MCP transport support remain future work.
+The folders currently organize code within the `app` module. Separate Gradle modules for domain, data, runtime, and feature screens can be extracted when the codebase and test suite justify that complexity. Partial Git staging, remote push/pull, remote execution, and full MCP transport support remain future work.

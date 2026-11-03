@@ -83,6 +83,9 @@ import com.orbitforge.mobile.ai.ProviderConfig
 import com.orbitforge.mobile.diagnostics.DiagnosticLog
 import com.orbitforge.mobile.github.GitHubRepositoryClient
 import com.orbitforge.mobile.github.GitHubRepository
+import com.orbitforge.mobile.github.LocalGitCommitPlan
+import com.orbitforge.mobile.github.LocalGitRepository
+import com.orbitforge.mobile.github.LocalGitStatus
 import com.orbitforge.mobile.github.WorkspaceSyncPlan
 import com.orbitforge.mobile.mcp.McpClient
 import com.orbitforge.mobile.security.SecretStore
@@ -483,7 +486,84 @@ private fun ProjectsScreen(storage: AppStorage, onOpenFile: (String) -> Unit, on
     var searchActive by remember { mutableStateOf(false) }
     val workspaceTools = remember { WorkspaceTools(context.applicationContext) }
     val workspace = storage.workspace()
+    val localGit = remember { LocalGitRepository() }
+    var localGitInitialized by remember { mutableStateOf(localGit.isInitialized(workspace)) }
+    var localGitStatus by remember { mutableStateOf<LocalGitStatus?>(null) }
+    var localGitBusy by remember { mutableStateOf(false) }
+    var localGitPlan by remember { mutableStateOf<LocalGitCommitPlan?>(null) }
+    var showLocalGitCommit by remember { mutableStateOf(false) }
+    var localCommitMessage by remember { mutableStateOf("Update workspace") }
+    var localGitAuthorName by remember { mutableStateOf(storage.gitAuthorName) }
+    var localGitAuthorEmail by remember { mutableStateOf(storage.gitAuthorEmail) }
     val files = remember(refresh) { workspace.walkTopDown().filter { it.isFile }.take(300).toList() }
+
+    fun refreshLocalGitStatus() {
+        if (!localGitInitialized || localGitBusy) return
+        localGitBusy = true
+        scope.launch {
+            try {
+                val snapshot = withContext(Dispatchers.IO) { localGit.status(workspace) }
+                localGitStatus = snapshot
+                notice = if (snapshot.isClean) {
+                    "Локальный Git: рабочая папка чистая."
+                } else {
+                    "Локальный Git: файлов с изменениями — " + snapshot.entries.size + "."
+                }
+                DiagnosticLog.add(context, "INFO", "LocalGit", "Status refreshed: changed=" + snapshot.entries.size)
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                notice = e.message ?: "Не удалось получить локальный Git status."
+                DiagnosticLog.add(context, "WARN", "LocalGit", "Status failed: " + e.javaClass.simpleName + ": " + (e.message ?: "no details"))
+            } finally {
+                localGitBusy = false
+            }
+        }
+    }
+
+    fun prepareLocalGitCommit() {
+        if (!localGitInitialized || localGitBusy) return
+        localGitBusy = true
+        scope.launch {
+            try {
+                val plan = withContext(Dispatchers.IO) { localGit.prepareCommit(workspace) }
+                if (plan.paths.isEmpty()) {
+                    localGitPlan = null
+                    notice = plan.diff
+                } else {
+                    localGitPlan = plan
+                    showLocalGitCommit = true
+                    notice = "Предпросмотр локального commit готов: файлов — " + plan.paths.size + "."
+                }
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                localGitPlan = null
+                notice = e.message ?: "Не удалось подготовить локальный Git diff."
+                DiagnosticLog.add(context, "WARN", "LocalGit", "Diff preparation failed: " + e.javaClass.simpleName + ": " + (e.message ?: "no details"))
+            } finally {
+                localGitBusy = false
+            }
+        }
+    }
+
+    fun initializeLocalGit() {
+        if (localGitBusy) return
+        localGitBusy = true
+        scope.launch {
+            try {
+                val branch = withContext(Dispatchers.IO) { localGit.initialize(workspace) }
+                localGitInitialized = true
+                localGitStatus = withContext(Dispatchers.IO) { localGit.status(workspace) }
+                notice = "Локальный Git инициализирован. Ветка: " + branch + ". Push не выполнялся."
+                DiagnosticLog.add(context, "INFO", "LocalGit", "Repository initialized in app-private workspace")
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                notice = e.message ?: "Не удалось инициализировать локальный Git."
+                DiagnosticLog.add(context, "ERROR", "LocalGit", "Init failed: " + e.javaClass.simpleName + ": " + (e.message ?: "no details"))
+            } finally {
+                localGitBusy = false
+            }
+        }
+    }
     val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) {
             try {
@@ -543,6 +623,64 @@ private fun ProjectsScreen(storage: AppStorage, onOpenFile: (String) -> Unit, on
         OutlinedButton(onClick = onOpenTerminal, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
             Text("Открыть встроенный терминал")
+        }
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = ForgeSurface),
+            shape = RoundedCornerShape(18.dp)
+        ) {
+            Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Локальный Git", fontWeight = FontWeight.SemiBold)
+                Text(
+                    if (localGitInitialized) "Репозиторий находится внутри app-private рабочей папки. Push не выполняется."
+                    else "Создай локальный Git-репозиторий в рабочей папке.",
+                    color = ForgeMuted,
+                    fontSize = 12.sp
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (!localGitInitialized) {
+                        Button(enabled = !localGitBusy, onClick = { initializeLocalGit() }, modifier = Modifier.weight(1f)) {
+                            Text(if (localGitBusy) "Подожди…" else "Инициализировать")
+                        }
+                    } else {
+                        OutlinedButton(enabled = !localGitBusy, onClick = { refreshLocalGitStatus() }, modifier = Modifier.weight(1f)) {
+                            Text("Обновить status")
+                        }
+                        Button(enabled = !localGitBusy, onClick = { prepareLocalGitCommit() }, modifier = Modifier.weight(1f)) {
+                            Text(if (localGitBusy) "Проверяю…" else "Diff / commit")
+                        }
+                    }
+                }
+                val gitSnapshot = localGitStatus
+                if (gitSnapshot != null) {
+                    Text(
+                        "Ветка: " + gitSnapshot.branch + " · " +
+                            if (gitSnapshot.isClean) "чисто" else "изменений: " + gitSnapshot.entries.size,
+                        color = ForgeMuted,
+                        fontSize = 12.sp
+                    )
+                    gitSnapshot.entries.take(12).forEach { entry ->
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(entry.shortStatus, color = ForgeAccent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text(entry.path, color = ForgeMuted, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                        }
+                    }
+                    if (gitSnapshot.entries.size > 12) {
+                        Text("И ещё " + (gitSnapshot.entries.size - 12) + " файлов…", color = ForgeMuted, fontSize = 11.sp)
+                    }
+                } else if (localGitInitialized) {
+                    Text("Нажми «Обновить status», чтобы увидеть изменения.", color = ForgeMuted, fontSize = 12.sp)
+                }
+                Text(
+                    "Commit включает все пути из проверенного diff; секреты, бинарные файлы, ссылки и слишком большие изменения блокируются.",
+                    color = ForgeMuted,
+                    fontSize = 11.sp
+                )
+            }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(enabled = !transferBusy, onClick = { folderPicker.launch(null) }, modifier = Modifier.weight(1f)) {
@@ -722,6 +860,118 @@ private fun ProjectsScreen(storage: AppStorage, onOpenFile: (String) -> Unit, on
             dismissButton = { TextButton(onClick = { confirmExport = false }) { Text("Отмена") } }
         )
     }
+    if (showLocalGitCommit) {
+        val reviewedPlan = localGitPlan
+        AlertDialog(
+            onDismissRequest = {
+                showLocalGitCommit = false
+                localGitPlan = null
+            },
+            title = { Text("Проверка локального commit") },
+            text = {
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (reviewedPlan == null) {
+                        Text("План commit больше недоступен. Построй diff заново.")
+                    } else {
+                        Text(
+                            "Будут staged и закоммичены все " + reviewedPlan.paths.size +
+                                " показанных файлов. Удалённые файлы останутся удалёнными только в Git commit; push не выполняется.",
+                            color = ForgeMuted,
+                            fontSize = 12.sp
+                        )
+                        OutlinedTextField(
+                            value = localCommitMessage,
+                            onValueChange = { localCommitMessage = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("Сообщение commit") },
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = localGitAuthorName,
+                            onValueChange = {
+                                localGitAuthorName = it
+                                storage.gitAuthorName = it
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("Имя автора Git") },
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = localGitAuthorEmail,
+                            onValueChange = {
+                                localGitAuthorEmail = it
+                                storage.gitAuthorEmail = it
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("Email автора Git") },
+                            singleLine = true
+                        )
+                        Text("Diff", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            reviewedPlan.diff,
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 280.dp).verticalScroll(rememberScrollState()),
+                            color = ForgeMuted,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(enabled = reviewedPlan != null && !localGitBusy, onClick = {
+                    val plan = localGitPlan ?: return@Button
+                    showLocalGitCommit = false
+                    localGitBusy = true
+                    scope.launch {
+                        try {
+                            val result = withContext(Dispatchers.IO) {
+                                localGit.commitReviewed(
+                                    workspace,
+                                    plan,
+                                    localCommitMessage,
+                                    localGitAuthorName,
+                                    localGitAuthorEmail
+                                )
+                            }
+                            localGitStatus = withContext(Dispatchers.IO) { localGit.status(workspace) }
+                            localGitPlan = null
+                            notice = "Локальный commit " + result.commitSha.take(7) +
+                                " создан: файлов — " + result.changedFiles + ", ветка — " + result.branch + ". Push не выполнялся."
+                            DiagnosticLog.add(
+                                context,
+                                "INFO",
+                                "LocalGit",
+                                "Local commit created: files=" + result.changedFiles + "; branch=" + result.branch
+                            )
+                        } catch (e: Exception) {
+                            if (e is CancellationException) throw e
+                            localGitPlan = null
+                            notice = e.message ?: "Локальный commit не создан."
+                            DiagnosticLog.add(
+                                context,
+                                "WARN",
+                                "LocalGit",
+                                "Commit failed: " + e.javaClass.simpleName + ": " + (e.message ?: "no details")
+                            )
+                            try {
+                                localGitStatus = withContext(Dispatchers.IO) { localGit.status(workspace) }
+                            } catch (_: Exception) {
+                                localGitStatus = null
+                            }
+                        } finally {
+                            localGitBusy = false
+                        }
+                    }
+                }) { Text("Создать локальный commit") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showLocalGitCommit = false
+                    localGitPlan = null
+                }) { Text("Отмена") }
+            }
+        )
+    }
+
 }
 
 @Composable

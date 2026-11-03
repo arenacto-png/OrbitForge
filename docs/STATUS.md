@@ -13,14 +13,15 @@
 - Editable `SKILL.md` starter skills with bounded loading and untrusted-skill policy.
 - Remote HTTP MCP initialization, tool discovery, and tool calls; each external call requires confirmation. MCP and non-streaming agent-provider HTTP response bodies are capped at 2 MiB before parsing; returned MCP text is capped at 20,000 characters.
 - GitHub repository listing/creation and workspace sync with a reviewed added/modified diff; unchanged files are omitted, known secret-like content is skipped, local hashes and the remote branch head are rechecked before a non-force commit, and remote-only files are never deleted; remote diff retrieval is capped at 40 modified files and 2 MiB.
+- Local Git through JGit in the exact app-private workspace root: initialize a `main` branch, inspect staged/unstaged/untracked status, preview a bounded unified diff, and create a user-reviewed local commit. The commit stages only paths included in the reviewed plan, rechecks the preview fingerprint and staged blob hashes, rejects sensitive paths even for tracked deletions, redacts the full preview if an old/staged diff contains secret-like values, and never pushes to a remote.
 - SAF folder picker with bounded import/export, private workspace editor, and persistent folder permissions.
 - Diagnostic report copy/share with API/GitHub/MCP token redaction and compact crash traces.
 - GitHub Actions workflow on main runs JVM unit tests and builds/uploads a debug APK. Android emulator UI smoke tests are not part of the current main workflow.
-- Unit tests for provider URL rules, diagnostic redaction, workspace path traversal and symlink escapes, strict agent tool-call parsing and round limits, safe workspace-search parsing, syntax highlighting spans/large-file fallback, and bounded diff previews.
+- Unit tests for provider URL rules, diagnostic redaction, workspace path traversal and symlink escapes, strict agent tool-call parsing and round limits, safe workspace-search parsing, syntax highlighting spans/large-file fallback, bounded diff previews, and local Git init/status/diff/commit safety.
 
 ## Still requires live verification
 
-- GitHub Actions has successfully run JVM unit tests and built the debug APK on main. Gradle sync in Android Studio, emulator UI tests, and APK installation on a physical device still require separate verification.
+- GitHub Actions has successfully run JVM unit tests and built the debug APK on main. Gradle sync in Android Studio, emulator UI tests, APK installation on a physical device, and local Git interaction on Android still require separate verification.
 - Real API provider compatibility, streaming, cancellation, and tool-call support.
 - GitHub token scopes, repository creation, and workspace push.
 - MCP compatibility with the target server's protocol/authentication variant.
@@ -30,7 +31,7 @@
 ## Known scope limits
 
 - Terminal is an allowlisted workspace command runner, not a full Linux shell. Termux/remote execution is not yet implemented.
-- Local Git status/diff/commit operations are not implemented. GitHub synchronization uses the REST Git Data API and now provides a bounded preview plus stale-plan checks; it still does not delete remote files.
+- Local Git status/diff/commit is implemented for the app-private workspace with JGit; partial staging and remote push/pull are not implemented. GitHub synchronization remains a separate REST Git Data API flow with bounded preview and stale-plan checks; it does not delete remote files.
 - MCP support is remote HTTPS only; local stdio servers and some OAuth flows are not supported.
 - Workspace sync uploads the app-private workspace contents, not this source archive automatically.
 - Basic secret scanning is defense-in-depth, not a guarantee. Inspect files before importing/exporting or pushing them.
