@@ -87,7 +87,7 @@ class LocalGitRepositoryTest {
         assertThrows(IllegalArgumentException::class.java) {
             localGit.commitReviewed(root, plan, "Commit", "Test Author", "test@example.com")
         }
-        Git.open(root).use { git -> assertFalse(git.log().call().iterator().hasNext()) }
+        Git.open(root).use { git -> assertTrue(git.repository.resolve("HEAD") == null) }
     }
 
     @Test
