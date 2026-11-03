@@ -198,6 +198,11 @@ class LocalGitRepository {
         var totalBytes = 0L
 
         for (path in paths) {
+            // Check the path before the missing-file branch too: deleting a tracked secret file
+            // must not bypass the sensitive-path policy.
+            require(!isSensitivePath(path)) {
+                "Commit заблокирован: чувствительный путь " + path + ". Убери его из Git index или исключи из проекта."
+            }
             val target = resolvePath(root, path)
             if (!target.exists()) {
                 val state = statusByPath[path]
@@ -206,9 +211,6 @@ class LocalGitRepository {
                 }
                 expectedShas[path] = null
                 continue
-            }
-            require(!isSensitivePath(path)) {
-                "Commit заблокирован: чувствительный путь " + path + ". Убери его из Git index или исключи из проекта."
             }
             require(target.isFile) { "Изменённый путь не является обычным файлом: " + path }
             val bytes = readWorkingFile(target)
@@ -291,7 +293,13 @@ class LocalGitRepository {
         require(result.length <= MAX_DIFF_CHARS) {
             "Diff превышает лимит предпросмотра " + MAX_DIFF_CHARS + " символов."
         }
-        return result.ifBlank { "Нет локальных изменений." }
+        // A tracked file may have had secret-like content in HEAD/index even when the current
+        // working copy is clean. Redact the entire preview rather than leaking removed values.
+        return if (looksLikeSecretContent(result)) {
+            "Предпросмотр diff скрыт: обнаружено содержимое, похожее на секрет."
+        } else {
+            result.ifBlank { "Нет локальных изменений." }
+        }
     }
 
     /**

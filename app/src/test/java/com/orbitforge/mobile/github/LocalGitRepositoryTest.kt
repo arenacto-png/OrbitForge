@@ -169,6 +169,40 @@ class LocalGitRepositoryTest {
         assertTrue(localGit.status(root).isClean)
     }
 
+    @Test
+    fun refusesDeletionOfSensitiveTrackedPath() {
+        val root = initializedWorkspace()
+        seedCommit(root, ".env", "APP_MODE=test\\n")
+        assertTrue(File(root, ".env").delete())
+
+        assertThrows(IllegalArgumentException::class.java) { localGit.prepareCommit(root) }
+    }
+
+    @Test
+    fun redactsSecretLikeContentFromTrackedBaseDiff() {
+        val root = initializedWorkspace()
+        val secret = "123456789012345678901234"
+        seedCommit(root, "config.txt", "api_key = \\"$secret\\"\\n")
+        File(root, "config.txt").writeText("api_key = \\"removed\\"\\n", Charsets.UTF_8)
+
+        val plan = localGit.prepareCommit(root)
+
+        assertFalse(plan.diff.contains(secret))
+        assertTrue(plan.diff.contains("скрыт"))
+    }
+
+    private fun seedCommit(root: File, path: String, content: String) {
+        File(root, path).writeText(content, Charsets.UTF_8)
+        Git.open(root).use { git ->
+            git.add().addFilepattern(path).call()
+            git.commit()
+                .setMessage("Seed fixture")
+                .setAuthor("Test Author", "test@example.com")
+                .setCommitter("Test Author", "test@example.com")
+                .call()
+        }
+    }
+
     private fun initializedWorkspace(): File =
         temporaryFolder.newFolder("repo-" + System.nanoTime()).apply { localGit.initialize(this) }
 }
