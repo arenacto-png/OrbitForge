@@ -2,8 +2,8 @@ package com.orbitforge.mobile.github
 
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.diff.DiffFormatter
-import org.eclipse.jgit.lib.DirCache
-import org.eclipse.jgit.lib.DirCacheEntry
+import org.eclipse.jgit.dircache.DirCache
+import org.eclipse.jgit.dircache.DirCacheEntry
 import org.eclipse.jgit.lib.FileMode
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
