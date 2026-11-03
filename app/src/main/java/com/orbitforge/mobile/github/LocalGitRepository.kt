@@ -185,13 +185,13 @@ class LocalGitRepository {
         var totalBytes = 0L
 
         for (path in paths) {
-            require(!isSensitivePath(path)) {
-                "Commit заблокирован: чувствительный путь " + path + ". Убери его из Git index или исключи из проекта."
-            }
             val target = resolvePath(root, path)
             if (!target.exists()) {
                 expectedShas[path] = null
                 continue
+            }
+            require(!isSensitivePath(path)) {
+                "Commit заблокирован: чувствительный путь " + path + ". Убери его из Git index или исключи из проекта."
             }
             require(target.isFile) { "Изменённый путь не является обычным файлом: " + path }
             val bytes = readWorkingFile(target)
@@ -264,7 +264,8 @@ class LocalGitRepository {
             writeUtf8(output, "diff --git a/" + path + " b/" + path + "\n")
             writeUtf8(output, "new file mode 100644\n--- /dev/null\n+++ b/" + path + "\n")
             val lines = content.split('\n')
-            val actualLines = if (content.endsWith("\n")) lines.dropLast(1) else lines
+            val actualLines = if (content.isEmpty()) emptyList()
+                else if (content.endsWith("\n")) lines.dropLast(1) else lines
             writeUtf8(output, "@@ -0,0 +1," + actualLines.size + " @@\n")
             for (line in actualLines) writeUtf8(output, "+" + line + "\n")
             if (content.isNotEmpty() && !content.endsWith("\n")) {
