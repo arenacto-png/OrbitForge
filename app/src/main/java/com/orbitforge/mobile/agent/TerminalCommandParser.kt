@@ -71,7 +71,10 @@ internal object TerminalCommandParser {
                         "Экранирование через обратную косую черту не поддерживается; используй кавычки для аргументов."
                     )
                 }
-                else -> token.append(char)
+                else -> {
+                    token.append(char)
+                    tokenStarted = true
+                }
             }
             index++
         }

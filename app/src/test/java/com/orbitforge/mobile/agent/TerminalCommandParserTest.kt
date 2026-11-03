@@ -6,6 +6,12 @@ import org.junit.Test
 
 class TerminalCommandParserTest {
     @Test
+    fun parsesOrdinaryUnquotedArguments() {
+        assertEquals(listOf("touch", "file.txt"), TerminalCommandParser.parse("touch file.txt"))
+        assertEquals(listOf("grep", "needle", "path.txt"), TerminalCommandParser.parse("grep needle path.txt"))
+    }
+
+    @Test
     fun parsesQuotedPathsAndArgumentsContainingSpaces() {
         assertEquals(
             listOf("grep", "needle with spaces", "src/Main File.kt"),
