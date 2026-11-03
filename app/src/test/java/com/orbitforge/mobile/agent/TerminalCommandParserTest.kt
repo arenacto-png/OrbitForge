@@ -23,7 +23,7 @@ class TerminalCommandParserTest {
     fun supportsConcatenatedQuotedAndUnquotedSegments() {
         assertEquals(
             listOf("echo", "prefix-middle-suffix"),
-            TerminalCommandParser.parse("""echo prefix"middle"suffix""")
+            TerminalCommandParser.parse("""echo prefix-"middle"-suffix""")
         )
     }
 
