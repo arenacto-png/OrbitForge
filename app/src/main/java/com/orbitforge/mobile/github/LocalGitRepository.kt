@@ -4,9 +4,12 @@ import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.dircache.DirCache
 import org.eclipse.jgit.dircache.DirCacheEntry
+import org.eclipse.jgit.dircache.DirCacheIterator
+import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.lib.FileMode
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
+import org.eclipse.jgit.treewalk.EmptyTreeIterator
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
@@ -34,7 +37,7 @@ data class LocalGitStatus(
     val isClean: Boolean get() = entries.isEmpty()
 }
 
-data class LocalGitCommitPlan internal constructor(
+class LocalGitCommitPlan internal constructor(
     val branch: String,
     val paths: List<String>,
     val diff: String,
@@ -253,10 +256,22 @@ class LocalGitRepository {
         }
 
         val output = BoundedByteArrayOutputStream(MAX_DIFF_BYTES)
-        val staged = git.diff().setCached(true).call()
+        val repository = git.repository
+        val head = repository.resolve(Constants.HEAD)
+        val staged = if (head == null) {
+            val scanner = DiffFormatter(ByteArrayOutputStream())
+            try {
+                scanner.setRepository(repository)
+                scanner.scan(EmptyTreeIterator(), DirCacheIterator(repository.readDirCache()))
+            } finally {
+                scanner.close()
+            }
+        } else {
+            git.diff().setCached(true).call()
+        }
         if (staged.isNotEmpty()) {
             DiffFormatter(output).use { formatter ->
-                formatter.setRepository(git.repository)
+                formatter.setRepository(repository)
                 formatter.setContext(3)
                 formatter.format(staged)
             }
