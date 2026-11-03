@@ -358,8 +358,8 @@ class LocalGitRepository {
             oldContent == null -> writeUtf8(output, "new file mode " + gitMode(fileMode) + "\n")
             newContent == null -> writeUtf8(output, "deleted file mode " + gitMode(fileMode) + "\n")
         }
-        writeUtf8(output, "--- " + if (oldContent == null) "/dev/null" else "a/" + path + "\n")
-        writeUtf8(output, "+++ " + if (newContent == null) "/dev/null" else "b/" + path + "\n")
+        writeUtf8(output, "--- " + (if (oldContent == null) "/dev/null" else "a/" + path) + "\n")
+        writeUtf8(output, "+++ " + (if (newContent == null) "/dev/null" else "b/" + path) + "\n")
 
         val oldLines = oldContent?.let { splitDiffLines(it) } ?: emptyList()
         val newLines = newContent?.let { splitDiffLines(it) } ?: emptyList()
