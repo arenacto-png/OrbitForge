@@ -118,8 +118,18 @@ class LocalGitRepository {
                 "Рабочая папка или Git index изменились после предпросмотра. Построй diff заново."
             }
 
-            git.add().addFilepattern(".").call()
-            git.add().addFilepattern(".").setUpdate(true).call()
+            val pathsToAdd = plan.paths.filter { plan.expectedBlobShas[it] != null }
+            if (pathsToAdd.isNotEmpty()) {
+                val add = git.add()
+                pathsToAdd.forEach { add.addFilepattern(it) }
+                add.call()
+            }
+            val pathsToUpdate = plan.paths.filter { plan.expectedBlobShas[it] == null }
+            if (pathsToUpdate.isNotEmpty()) {
+                val update = git.add().setUpdate(true)
+                pathsToUpdate.forEach { update.addFilepattern(it) }
+                update.call()
+            }
 
             val stagedStatus = git.status().call()
             val stagedSnapshot = toSnapshot(git, stagedStatus)
