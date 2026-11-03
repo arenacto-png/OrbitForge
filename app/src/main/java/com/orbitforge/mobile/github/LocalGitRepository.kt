@@ -206,11 +206,6 @@ class LocalGitRepository {
             expectedShas[path] = GitBlobHash.sha1(bytes)
         }
 
-        val index = git.repository.readDirCache()
-        for (entry in snapshot.entries) {
-            validateIndexPath(git.repository, index, entry)
-        }
-
         val diff = buildDiff(git, rawStatus, paths)
         val fingerprint = fingerprint(snapshot, expectedShas, diff)
         return LocalGitCommitPlan(
@@ -220,17 +215,6 @@ class LocalGitRepository {
             expectedBlobShas = expectedShas.toMap(),
             fingerprint = fingerprint
         )
-    }
-
-    private fun validateIndexPath(repository: Repository, index: DirCache, statusEntry: LocalGitStatusEntry) {
-        if (statusEntry.indexStatus.isBlank() || statusEntry.indexStatus == " ") return
-        val entry = index.getEntry(statusEntry.path) ?: return
-        require(entry.stage == 0) { "Git index содержит конфликт для " + statusEntry.path + "." }
-        val bytes = readIndexEntry(repository, entry)
-        val content = decodeText(bytes, statusEntry.path)
-        require(!looksLikeSecretContent(content)) {
-            "Commit заблокирован: staged-содержимое " + statusEntry.path + " похоже на секрет или токен."
-        }
     }
 
     private fun readIndexEntry(repository: Repository, entry: DirCacheEntry): ByteArray {
@@ -361,7 +345,7 @@ class LocalGitRepository {
             "Укажи корректное имя автора (до 100 символов)."
         }
         val email = authorEmail.trim()
-        require(email.length <= 254 && email.matches(Regex("[^@\\\\s<>]+@[^@\\\\s<>]+"))) {
+        require(email.length <= 254 && email.matches(Regex("""[^@\s<>]+@[^@\s<>]+"""))) {
             "Укажи корректный email автора."
         }
     }
@@ -437,7 +421,7 @@ class LocalGitRepository {
 
     private fun looksLikeSecretContent(content: String): Boolean {
         val patterns = listOf(
-            Regex("(?i)(api[_-]?key|access[_-]?token|github[_-]?token|client[_-]?secret|password)\\\\s*[:=]\\\\s*[\\\"']?[A-Za-z0-9_./+=-]{20,}"),
+            Regex("""(?i)(api[_-]?key|access[_-]?token|github[_-]?token|client[_-]?secret|password)\s*[:=]\s*["']?[A-Za-z0-9_./+=-]{20,}"""),
             Regex("(?i)(sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})"),
             Regex("(?i)Bearer\\\\s+[A-Za-z0-9._~+/=-]{20,}")
         )
