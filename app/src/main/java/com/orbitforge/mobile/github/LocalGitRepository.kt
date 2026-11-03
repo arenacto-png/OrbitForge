@@ -4,13 +4,11 @@ import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.dircache.DirCache
 import org.eclipse.jgit.dircache.DirCacheEntry
-import org.eclipse.jgit.dircache.DirCacheIterator
 import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.lib.FileMode
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
-import org.eclipse.jgit.treewalk.EmptyTreeIterator
-import org.eclipse.jgit.treewalk.FileTreeIterator
+
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
@@ -259,62 +257,34 @@ class LocalGitRepository {
         val output = BoundedByteArrayOutputStream(MAX_DIFF_BYTES)
         val repository = git.repository
         val head = repository.resolve(Constants.HEAD)
-        val staged = if (head == null) {
-            val scanner = DiffFormatter(ByteArrayOutputStream())
-            try {
-                scanner.setRepository(repository)
-                scanner.scan(EmptyTreeIterator(), DirCacheIterator(repository.readDirCache()))
-            } finally {
-                scanner.close()
-            }
+        if (head == null) {
+            appendInitialCommitDiff(git, status, paths, output)
         } else {
-            git.diff().setCached(true).call()
-        }
-        if (staged.isNotEmpty()) {
-            DiffFormatter(output).use { formatter ->
-                formatter.setRepository(repository)
-                formatter.setContext(3)
-                formatter.format(staged)
+            val staged = git.diff().setCached(true).call()
+            if (staged.isNotEmpty()) {
+                DiffFormatter(output).use { formatter ->
+                    formatter.setRepository(repository)
+                    formatter.setContext(3)
+                    formatter.format(staged)
+                }
             }
-        }
 
-        val unstaged = if (head == null) {
-            val scanner = DiffFormatter(ByteArrayOutputStream())
-            try {
-                scanner.setRepository(repository)
-                scanner.scan(
-                    DirCacheIterator(repository.readDirCache()),
-                    FileTreeIterator(repository)
-                ).filterNot { status.untracked.contains(it.newPath) }
-            } finally {
-                scanner.close()
-            }
-        } else {
-            git.diff().call()
-        }
-        if (unstaged.isNotEmpty()) {
-            DiffFormatter(output).use { formatter ->
-                formatter.setRepository(repository)
-                formatter.setContext(3)
-                formatter.format(unstaged)
+            val unstaged = git.diff().call()
+            if (unstaged.isNotEmpty()) {
+                DiffFormatter(output).use { formatter ->
+                    formatter.setRepository(repository)
+                    formatter.setContext(3)
+                    formatter.format(unstaged)
+                }
             }
         }
 
         for (path in status.untracked.sorted()) {
-            val file = resolvePath(canonicalRoot(git.repository.workTree), path)
+            val file = resolvePath(canonicalRoot(repository.workTree), path)
             require(file.isFile) { "Untracked-путь не является обычным файлом: " + path }
             val bytes = readWorkingFile(file)
             val content = decodeText(bytes, path)
-            writeUtf8(output, "diff --git a/" + path + " b/" + path + "\n")
-            writeUtf8(output, "new file mode 100644\n--- /dev/null\n+++ b/" + path + "\n")
-            val lines = content.split('\n')
-            val actualLines = if (content.isEmpty()) emptyList()
-                else if (content.endsWith("\n")) lines.dropLast(1) else lines
-            writeUtf8(output, "@@ -0,0 +1," + actualLines.size + " @@\n")
-            for (line in actualLines) writeUtf8(output, "+" + line + "\n")
-            if (content.isNotEmpty() && !content.endsWith("\n")) {
-                writeUtf8(output, "\\ No newline at end of file\n")
-            }
+            appendWholeFileDiff(output, path, null, content, FileMode.REGULAR_FILE)
         }
 
         val result = String(output.toByteArray(), Charsets.UTF_8)
@@ -323,6 +293,105 @@ class LocalGitRepository {
         }
         return result.ifBlank { "Нет локальных изменений." }
     }
+
+    /**
+     * JGit's porcelain diff command expects a HEAD in some index/worktree combinations.
+     * For an unborn branch, render index additions and index-to-worktree changes from
+     * bounded blob/file bytes instead of resolving a nonexistent HEAD object.
+     */
+    private fun appendInitialCommitDiff(
+        git: Git,
+        status: org.eclipse.jgit.api.Status,
+        paths: List<String>,
+        output: ByteArrayOutputStream
+    ) {
+        val repository = git.repository
+        val root = canonicalRoot(repository.workTree)
+        val allowedPaths = paths.toSet()
+        val index = repository.readDirCache()
+        val entriesByPath = linkedMapOf<String, DirCacheEntry>()
+
+        for (indexPosition in 0 until index.entryCount) {
+            val entry = index.getEntry(indexPosition)
+            if (entry.stage != 0 || !allowedPaths.contains(entry.pathString)) continue
+            entriesByPath[entry.pathString] = entry
+
+            val bytes = readIndexEntry(repository, entry)
+            val content = decodeText(bytes, entry.pathString)
+            if (isSensitivePath(entry.pathString) || looksLikeSecretContent(content)) {
+                appendRedactedDiffSummary(output, entry.pathString, "staged content omitted")
+            } else {
+                appendWholeFileDiff(output, entry.pathString, null, content, entry.fileMode)
+            }
+        }
+
+        val workTreePaths = (status.modified + status.missing).filter { allowedPaths.contains(it) }.toSortedSet()
+        for (path in workTreePaths) {
+            val entry = entriesByPath[path] ?: continue
+            val oldBytes = readIndexEntry(repository, entry)
+            val oldContent = decodeText(oldBytes, path)
+            val file = resolvePath(root, path)
+            val newContent = if (file.exists()) decodeText(readWorkingFile(file), path) else null
+            if (newContent == oldContent) continue
+
+            if (isSensitivePath(path) || looksLikeSecretContent(oldContent)) {
+                appendRedactedDiffSummary(
+                    output,
+                    path,
+                    if (newContent == null) "deleted file; previous content omitted" else "updated file; previous content omitted"
+                )
+            } else {
+                appendWholeFileDiff(output, path, oldContent, newContent, entry.fileMode)
+            }
+        }
+    }
+
+    private fun appendWholeFileDiff(
+        output: ByteArrayOutputStream,
+        path: String,
+        oldContent: String?,
+        newContent: String?,
+        fileMode: FileMode?
+    ) {
+        writeUtf8(output, "diff --git a/" + path + " b/" + path + "\n")
+        when {
+            oldContent == null -> writeUtf8(output, "new file mode " + gitMode(fileMode) + "\n")
+            newContent == null -> writeUtf8(output, "deleted file mode " + gitMode(fileMode) + "\n")
+        }
+        writeUtf8(output, "--- " + if (oldContent == null) "/dev/null" else "a/" + path + "\n")
+        writeUtf8(output, "+++ " + if (newContent == null) "/dev/null" else "b/" + path + "\n")
+
+        val oldLines = oldContent?.let { splitDiffLines(it) } ?: emptyList()
+        val newLines = newContent?.let { splitDiffLines(it) } ?: emptyList()
+        val hunk = when {
+            oldContent == null -> "@@ -0,0 +1," + newLines.size + " @@\n"
+            newContent == null -> "@@ -1," + oldLines.size + " +0,0 @@\n"
+            else -> "@@ -1," + oldLines.size + " +1," + newLines.size + " @@\n"
+        }
+        writeUtf8(output, hunk)
+        for (line in oldLines) writeUtf8(output, "-" + line + "\n")
+        if (oldContent != null && oldContent.isNotEmpty() && !oldContent.endsWith("\n")) {
+            writeUtf8(output, "\\ No newline at end of file\n")
+        }
+        for (line in newLines) writeUtf8(output, "+" + line + "\n")
+        if (newContent != null && newContent.isNotEmpty() && !newContent.endsWith("\n")) {
+            writeUtf8(output, "\\ No newline at end of file\n")
+        }
+    }
+
+    private fun appendRedactedDiffSummary(output: ByteArrayOutputStream, path: String, summary: String) {
+        writeUtf8(output, "diff --git a/" + path + " b/" + path + "\n")
+        writeUtf8(output, "[Preview redacted: " + summary + "]\n")
+    }
+
+    private fun splitDiffLines(content: String): List<String> {
+        if (content.isEmpty()) return emptyList()
+        val lines = content.split('\n')
+        return if (content.endsWith("\n")) lines.dropLast(1) else lines
+    }
+
+    private fun gitMode(mode: FileMode?): String =
+        if (mode == FileMode.EXECUTABLE_FILE) "100755" else "100644"
 
     private fun toSnapshot(git: Git, status: org.eclipse.jgit.api.Status): LocalGitStatus {
         val staged = linkedMapOf<String, String>()
