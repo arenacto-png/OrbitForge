@@ -859,7 +859,8 @@ private fun ProjectsScreen(storage: AppStorage, onOpenFile: (String) -> Unit, on
             },
             dismissButton = { TextButton(onClick = { confirmExport = false }) { Text("Отмена") } }
         )
-    }    if (showLocalGitCommit) {
+    }
+    if (showLocalGitCommit) {
         val reviewedPlan = localGitPlan
         AlertDialog(
             onDismissRequest = {
