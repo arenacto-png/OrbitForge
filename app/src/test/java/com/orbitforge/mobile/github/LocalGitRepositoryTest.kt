@@ -183,7 +183,7 @@ class LocalGitRepositoryTest {
         val root = initializedWorkspace()
         val secret = "123456789012345678901234"
         seedCommit(root, "config.txt", "api_key = \"$secret\"\n")
-        File(root, "config.txt").writeText("api_key = \\"removed\\"\\n", Charsets.UTF_8)
+        File(root, "config.txt").writeText("api_key = \"removed\"\n", Charsets.UTF_8)
 
         val plan = localGit.prepareCommit(root)
 
