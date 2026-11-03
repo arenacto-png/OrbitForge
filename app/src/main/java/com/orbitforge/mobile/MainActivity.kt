@@ -676,7 +676,7 @@ private fun ProjectsScreen(storage: AppStorage, onOpenFile: (String) -> Unit, on
                     Text("Нажми «Обновить status», чтобы увидеть изменения.", color = ForgeMuted, fontSize = 12.sp)
                 }
                 Text(
-                    "Commit включает все изменения рабочей папки после проверки diff; секреты, бинарные файлы, ссылки и слишком большие изменения блокируются.",
+                    "Commit включает все пути из проверенного diff; секреты, бинарные файлы, ссылки и слишком большие изменения блокируются.",
                     color = ForgeMuted,
                     fontSize = 11.sp
                 )
