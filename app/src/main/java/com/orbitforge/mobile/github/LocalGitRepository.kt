@@ -182,11 +182,16 @@ class LocalGitRepository {
         val root = canonicalRoot(git.repository.workTree)
         val paths = snapshot.entries.map { validatePath(it.path) }.sorted()
         val expectedShas = linkedMapOf<String, String?>()
+        val statusByPath = snapshot.entries.associateBy { it.path }
         var totalBytes = 0L
 
         for (path in paths) {
             val target = resolvePath(root, path)
             if (!target.exists()) {
+                val state = statusByPath[path]
+                require(state != null && (state.indexStatus == "D" || state.workTreeStatus == "D")) {
+                    "Файл исчез во время подготовки diff: " + path
+                }
                 expectedShas[path] = null
                 continue
             }
