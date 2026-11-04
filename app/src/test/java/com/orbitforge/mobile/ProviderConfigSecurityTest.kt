@@ -26,6 +26,20 @@ class ProviderConfigSecurityTest {
     }
 
     @Test
+    fun rejectsCredentialsInAnthropicUrlToo() {
+        try {
+            ProviderConfig(
+                "https://user:pass@api.anthropic.com",
+                "claude-demo",
+                ProviderApiFormat.ANTHROPIC_MESSAGES
+            ).requestUrl()
+            fail("Credentials in Anthropic URLs must be rejected")
+        } catch (_: IllegalArgumentException) {
+            // Expected: credentials belong in protected fields, not URLs.
+        }
+    }
+
+    @Test
     fun appendsV1ForHostOnlyBaseUrl() {
         assertEquals(
             "https://example.com/v1/chat/completions",

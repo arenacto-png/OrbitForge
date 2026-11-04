@@ -13,6 +13,7 @@
 - Limit the agent to eight model rounds and eight tool calls per round. Do not execute tool calls returned in the final permitted round, because there is no remaining model round to process their results.
 - Keep command execution isolated from the app process where feasible. Android-local Linux environments have limitations; do not describe PRoot as a strong security sandbox.
 - Never embed a developer-owned secret in the APK.
+- Provider API format is an explicit non-secret preference. OpenAI-compatible requests use the Bearer authorization header; Anthropic Messages requests use `x-api-key` and the fixed `anthropic-version` header. Neither adapter places credentials in the URL or request body.
 
 
 ## Agent tool policy
