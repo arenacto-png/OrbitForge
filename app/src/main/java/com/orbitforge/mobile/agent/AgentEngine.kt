@@ -2,6 +2,7 @@ package com.orbitforge.mobile.agent
 
 import android.content.Context
 import com.orbitforge.mobile.ai.ProviderConfig
+import com.orbitforge.mobile.ai.ProviderApiAdapter
 import com.orbitforge.mobile.diagnostics.DiagnosticLog
 import com.orbitforge.mobile.security.SecretStore
 import com.orbitforge.mobile.mcp.McpTool
@@ -138,18 +139,11 @@ class AgentEngine(context: Context) {
         history: JSONArray,
         availableTools: JSONArray
     ): JSONObject {
-        val body = JSONObject()
-            .put("model", config.model)
-            .put("messages", history)
-            .put("tools", availableTools)
-            .put("tool_choice", "auto")
-            .put("stream", false)
-            .toString()
-            .toRequestBody("application/json; charset=utf-8".toMediaType())
+        val spec = ProviderApiAdapter.agentRequest(config, apiKey, history, availableTools)
+        val body = spec.body.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
         val request = Request.Builder()
-            .url(config.chatCompletionsUrl())
-            .header("Authorization", "Bearer $apiKey")
-            .header("Content-Type", "application/json")
+            .url(spec.url)
+            .apply { spec.headers.forEach { (name, value) -> header(name, value) } }
             .post(body)
             .build()
 
@@ -167,15 +161,16 @@ class AgentEngine(context: Context) {
                             val text = response.body?.byteStream()?.use { BoundedResponseBodyReader.read(it) }.orEmpty()
                             if (!response.isSuccessful) {
                                 val safe = DiagnosticLog.redact(text).take(500)
-                                DiagnosticLog.add(appContext, "ERROR", "AgentEngine", "HTTP ${response.code}: $safe")
-                                throw IOException("Ошибка API HTTP ${response.code}: ${safe.ifBlank { response.message }}")
+                                DiagnosticLog.add(appContext, "ERROR", "AgentEngine", "HTTP " + response.code + ": " + safe)
+                                throw IOException("Ошибка API HTTP " + response.code + ": " + safe.ifBlank { response.message })
                             }
                             val parsed = try {
                                 JSONObject(text)
                             } catch (e: Exception) {
-                                throw IOException("Не удалось разобрать ответ модели: ${e.message}")
+                                throw IOException("Не удалось разобрать ответ модели: " + e.message)
                             }
-                            if (continuation.isActive) continuation.resumeWith(Result.success(parsed))
+                            val normalized = ProviderApiAdapter.normalizeAgentResponse(config.apiFormat, parsed)
+                            if (continuation.isActive) continuation.resumeWith(Result.success(normalized))
                         } catch (e: Exception) {
                             if (continuation.isActive) continuation.resumeWithException(e)
                         }

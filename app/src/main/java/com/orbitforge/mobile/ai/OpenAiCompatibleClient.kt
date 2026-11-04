@@ -13,8 +13,8 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONArray
 import org.json.JSONObject
+import com.orbitforge.mobile.network.BoundedResponseBodyReader
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
@@ -40,25 +40,20 @@ class OpenAiCompatibleClient(private val context: Context) {
             close(IllegalStateException("Укажи идентификатор модели в настройках."))
             return@callbackFlow
         }
-        val requestBody = JSONObject().apply {
-            put("model", config.model)
-            put("stream", true)
-            put("messages", JSONArray().apply {
-                messages.forEach { message ->
-                    put(JSONObject().put("role", message.role).put("content", message.content))
-                }
-            })
-        }.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
-
+        val spec = try {
+            ProviderApiAdapter.chatRequest(config, apiKey, messages, stream = true)
+        } catch (e: Exception) {
+            close(IllegalArgumentException("Некорректная конфигурация API: " + e.message))
+            return@callbackFlow
+        }
         val request = try {
             Request.Builder()
-                .url(config.chatCompletionsUrl())
-                .header("Authorization", "Bearer $apiKey")
-                .header("Content-Type", "application/json")
-                .post(requestBody)
+                .url(spec.url)
+                .apply { spec.headers.forEach { (name, value) -> header(name, value) } }
+                .post(spec.body.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
                 .build()
         } catch (e: Exception) {
-            close(IllegalArgumentException("Некорректный адрес API: ${e.message}"))
+            close(IllegalArgumentException("Некорректный адрес API: " + e.message))
             return@callbackFlow
         }
 
@@ -67,15 +62,32 @@ class OpenAiCompatibleClient(private val context: Context) {
             try {
                 call.execute().use { response ->
                     if (!response.isSuccessful) {
-                        val body = response.body?.string().orEmpty().take(1200)
-                        val safeBody = DiagnosticLog.redact(body)
-                        DiagnosticLog.add(context, "ERROR", "ApiClient", "HTTP ${response.code}: $safeBody")
+                        val body = try {
+                            response.body?.byteStream()?.use {
+                                BoundedResponseBodyReader.read(it, MAX_ERROR_BODY_BYTES)
+                            }.orEmpty()
+                        } catch (_: IOException) {
+                            DiagnosticLog.add(
+                                context,
+                                "WARN",
+                                "ApiClient",
+                                "HTTP " + response.code + ": response error body omitted (read limit or I/O failure)"
+                            )
+                            ""
+                        }
+                        val safeBody = DiagnosticLog.redact(body).take(1200)
+                        DiagnosticLog.add(
+                            context,
+                            "ERROR",
+                            "ApiClient",
+                            "HTTP " + response.code + ": " + safeBody.ifBlank { "<empty or omitted>" }
+                        )
                         throw IOException(
                             when (response.code) {
-                                401, 403 -> "API отклонил ключ или доступ (HTTP ${response.code}). Проверь ключ и права."
-                                404 -> "Endpoint не найден (HTTP 404). Проверь базовый URL провайдера."
+                                401, 403 -> "API отклонил ключ или доступ (HTTP " + response.code + "). Проверь ключ и права."
+                                404 -> "Endpoint или модель не найдены (HTTP 404). Проверь базовый URL и ID модели."
                                 429 -> "Лимит запросов или средств исчерпан (HTTP 429)."
-                                else -> "Ошибка API HTTP ${response.code}: ${safeBody.take(350)}"
+                                else -> "Ошибка API HTTP " + response.code + ": " + safeBody.take(350)
                             }
                         )
                     }
@@ -87,15 +99,19 @@ class OpenAiCompatibleClient(private val context: Context) {
                         val data = line.removePrefix("data:").trim()
                         if (data == "[DONE]") break
                         try {
-                            val root = JSONObject(data)
-                            val choices = root.optJSONArray("choices") ?: continue
-                            val delta = choices.optJSONObject(0)?.optJSONObject("delta")
-                            val content = delta?.optString("content").orEmpty()
-                            if (content.isNotEmpty() && content != "null") trySend(content)
-                            val finish = choices.optJSONObject(0)?.optString("finish_reason")
-                            if (finish == "stop") break
+                            val event = JSONObject(data)
+                            if (ProviderApiAdapter.isStreamFinished(config.apiFormat, event)) break
+                            val content = ProviderApiAdapter.parseStreamText(config.apiFormat, event)
+                            if (!content.isNullOrEmpty()) trySend(content)
+                        } catch (e: IOException) {
+                            throw e
                         } catch (e: Exception) {
-                            DiagnosticLog.add(context, "WARN", "ApiClient", "Не удалось разобрать SSE-событие: ${e.javaClass.simpleName}")
+                            DiagnosticLog.add(
+                                context,
+                                "WARN",
+                                "ApiClient",
+                                "Не удалось разобрать SSE-событие: " + e.javaClass.simpleName
+                            )
                         }
                     }
                 }
@@ -103,7 +119,13 @@ class OpenAiCompatibleClient(private val context: Context) {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                DiagnosticLog.add(context, "ERROR", "ApiClient", "${e.javaClass.simpleName}: ${e.message ?: "network error"}")
+                val safeMessage = DiagnosticLog.redact(e.message.orEmpty()).take(300)
+                DiagnosticLog.add(
+                    context,
+                    "ERROR",
+                    "ApiClient",
+                    e.javaClass.simpleName + ": " + safeMessage.ifBlank { "network error" }
+                )
                 close(e)
             }
         }
@@ -112,5 +134,9 @@ class OpenAiCompatibleClient(private val context: Context) {
             call.cancel()
             job.cancel()
         }
+    }
+
+    private companion object {
+        const val MAX_ERROR_BODY_BYTES = 64 * 1024
     }
 }
