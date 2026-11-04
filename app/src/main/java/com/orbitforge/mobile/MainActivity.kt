@@ -1195,21 +1195,23 @@ private fun SettingsScreen(storage: AppStorage, secrets: SecretStore, onOpenLogs
         }
         Text("ПРОВАЙДЕР ИИ", color = ForgeMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
         Text("Формат API", color = ForgeMuted, fontSize = 13.sp)
-        TextButton(onClick = { apiFormatMenuExpanded = true }) {
-            Text(apiFormat.label)
-        }
-        DropdownMenu(
-            expanded = apiFormatMenuExpanded,
-            onDismissRequest = { apiFormatMenuExpanded = false }
-        ) {
-            ProviderApiFormat.values().forEach { format ->
-                DropdownMenuItem(
-                    text = { Text(format.label) },
-                    onClick = {
-                        apiFormat = format
-                        apiFormatMenuExpanded = false
-                    }
-                )
+        Box {
+            TextButton(onClick = { apiFormatMenuExpanded = true }) {
+                Text(apiFormat.label)
+            }
+            DropdownMenu(
+                expanded = apiFormatMenuExpanded,
+                onDismissRequest = { apiFormatMenuExpanded = false }
+            ) {
+                ProviderApiFormat.values().forEach { format ->
+                    DropdownMenuItem(
+                        text = { Text(format.label) },
+                        onClick = {
+                            apiFormat = format
+                            apiFormatMenuExpanded = false
+                        }
+                    )
+                }
             }
         }
         Text(
