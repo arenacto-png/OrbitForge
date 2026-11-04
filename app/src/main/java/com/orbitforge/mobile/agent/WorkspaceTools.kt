@@ -52,7 +52,7 @@ class WorkspaceTools(context: Context) {
         val file = resolve(relativePath)
         require(content.toByteArray(Charsets.UTF_8).size <= 10 * 1024) { "Файл больше лимита записи 10 КБ. Разбей его на несколько небольших файлов." }
         file.parentFile?.mkdirs()
-        file.writeText(content, Charsets.UTF_8)
+        AtomicWorkspaceFileWriter.write(file, content)
         return "Записано ${content.toByteArray(Charsets.UTF_8).size} байт в $relativePath"
     }
 
@@ -61,7 +61,7 @@ class WorkspaceTools(context: Context) {
         val file = resolve(relativePath)
         require(content.toByteArray(Charsets.UTF_8).size <= 512 * 1024) { "Файл больше лимита редактора 512 КБ." }
         file.parentFile?.mkdirs()
-        file.writeText(content, Charsets.UTF_8)
+        AtomicWorkspaceFileWriter.write(file, content)
         return "Сохранено ${content.toByteArray(Charsets.UTF_8).size} байт в $relativePath"
     }
 
