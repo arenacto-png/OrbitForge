@@ -22,7 +22,8 @@
 - [x] Bounded diff preview before agent writes; approve/reject supported
 - [ ] Support structured multi-file patch application
 - [x] Add conversation/task cancellation and recovery tests (persist cancelled result and preserve partial chat output)
-- [ ] Add provider-specific adapters and clearer usage/error diagnostics
+- [x] Add provider-specific request/response adapters for OpenAI-compatible Chat Completions and Anthropic Messages (streaming chat and agent tool calls)
+- [ ] Add clearer provider usage/error diagnostics (bounded error details and token-usage accounting)
 
 ## Milestone 3 — Developer workspace
 - [x] Basic project file list and text editor

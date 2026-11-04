@@ -42,6 +42,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -80,6 +82,7 @@ import com.orbitforge.mobile.agent.WorkspaceTerminal
 import com.orbitforge.mobile.ai.ApiMessage
 import com.orbitforge.mobile.ai.OpenAiCompatibleClient
 import com.orbitforge.mobile.ai.ProviderConfig
+import com.orbitforge.mobile.ai.ProviderApiFormat
 import com.orbitforge.mobile.diagnostics.DiagnosticLog
 import com.orbitforge.mobile.github.GitHubRepositoryClient
 import com.orbitforge.mobile.github.GitHubRepository
@@ -313,7 +316,7 @@ private fun ChatScreen(storage: AppStorage, secrets: SecretStore, requestScope: 
                         try {
                             if (agentMode) {
                                 val answer = agent.runTask(
-                                    config = ProviderConfig(storage.endpoint, storage.model),
+                                    config = ProviderConfig(storage.endpoint, storage.model, storage.apiFormat),
                                     apiKey = key,
                                     userTask = text,
                                     approveWrite = { approval ->
@@ -335,7 +338,7 @@ private fun ChatScreen(storage: AppStorage, secrets: SecretStore, requestScope: 
                             } else {
                                 val answer = StringBuilder()
                                 client.streamChat(
-                                    ProviderConfig(storage.endpoint, storage.model),
+                                    ProviderConfig(storage.endpoint, storage.model, storage.apiFormat),
                                     key,
                                     requestHistory
                                 ).collect { chunk ->
@@ -1138,6 +1141,8 @@ private fun SettingsScreen(storage: AppStorage, secrets: SecretStore, onOpenLogs
     var testing by remember { mutableStateOf(false) }
     var endpoint by remember { mutableStateOf(storage.endpoint) }
     var model by remember { mutableStateOf(storage.model) }
+    var apiFormat by remember { mutableStateOf(storage.apiFormat) }
+    var apiFormatMenuExpanded by remember { mutableStateOf(false) }
     var apiKey by remember { mutableStateOf("") }
     var showKey by remember { mutableStateOf(false) }
     var showGitHubToken by remember { mutableStateOf(false) }
@@ -1189,7 +1194,35 @@ private fun SettingsScreen(storage: AppStorage, secrets: SecretStore, onOpenLogs
             }
         }
         Text("ПРОВАЙДЕР ИИ", color = ForgeMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-        Text("Совместимый с OpenAI Chat Completions API провайдер", color = ForgeMuted, fontSize = 13.sp)
+        Text("Формат API", color = ForgeMuted, fontSize = 13.sp)
+        Box {
+            TextButton(onClick = { apiFormatMenuExpanded = true }) {
+                Text(apiFormat.label)
+            }
+            DropdownMenu(
+                expanded = apiFormatMenuExpanded,
+                onDismissRequest = { apiFormatMenuExpanded = false }
+            ) {
+                ProviderApiFormat.values().forEach { format ->
+                    DropdownMenuItem(
+                        text = { Text(format.label) },
+                        onClick = {
+                            apiFormat = format
+                            apiFormatMenuExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+        Text(
+            if (apiFormat == ProviderApiFormat.ANTHROPIC_MESSAGES) {
+                "Используется Anthropic Messages API: ключ отправляется в x-api-key."
+            } else {
+                "Используется OpenAI-compatible Chat Completions API."
+            },
+            color = ForgeMuted,
+            fontSize = 12.sp
+        )
         OutlinedTextField(endpoint, { endpoint = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Базовый URL API") }, singleLine = true)
         OutlinedTextField(model, { model = it }, modifier = Modifier.fillMaxWidth(), label = { Text("ID модели") }, singleLine = true)
         OutlinedTextField(apiKey, { apiKey = it }, modifier = Modifier.fillMaxWidth(), label = { Text(if (secrets.hasApiKey()) "Новый API-ключ (пусто — без изменений)" else "API-ключ") }, singleLine = true, visualTransformation = if (showKey) VisualTransformation.None else PasswordVisualTransformation())
@@ -1200,8 +1233,8 @@ private fun SettingsScreen(storage: AppStorage, secrets: SecretStore, onOpenLogs
         Button(onClick = {
             if (!endpoint.trim().startsWith("https://")) { notice = "Адрес должен начинаться с https://"; return@Button }
             if (model.isBlank()) { notice = "Укажи ID модели."; return@Button }
-            try { ProviderConfig(endpoint, model).chatCompletionsUrl() } catch (e: Exception) { notice = e.message ?: "Некорректный URL"; return@Button }
-            storage.endpoint = endpoint; storage.model = model
+            try { ProviderConfig(endpoint, model, apiFormat).requestUrl() } catch (e: Exception) { notice = e.message ?: "Некорректный URL"; return@Button }
+            storage.endpoint = endpoint; storage.model = model; storage.apiFormat = apiFormat
             val keyUpdated = apiKey.isNotBlank()
             if (keyUpdated) secrets.saveApiKey(apiKey)
             apiKey = ""; notice = "Настройки сохранены на устройстве."
@@ -1230,7 +1263,7 @@ private fun SettingsScreen(storage: AppStorage, secrets: SecretStore, onOpenLogs
                     val answer = StringBuilder()
                     try {
                         OpenAiCompatibleClient(context.applicationContext)
-                            .streamChat(ProviderConfig(endpoint, model), key, listOf(ApiMessage("user", "Reply with OK only.")))
+                            .streamChat(ProviderConfig(endpoint, model, apiFormat), key, listOf(ApiMessage("user", "Reply with OK only.")))
                             .collect { answer.append(it) }
                         notice = if (answer.isNotBlank()) "Подключение успешно. Ответ модели получен." else "Ответ получен, но пустой."
                         DiagnosticLog.add(context, "INFO", "Settings", "Connection test succeeded; responseChars=${answer.length}")

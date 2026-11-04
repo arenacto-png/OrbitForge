@@ -1,6 +1,7 @@
 package com.orbitforge.mobile
 
 import android.content.Context
+import com.orbitforge.mobile.ai.ProviderApiFormat
 import org.json.JSONArray
 import java.io.File
 
@@ -15,6 +16,10 @@ class AppStorage(context: Context) {
     var model: String
         get() = prefs.getString("model", "gpt-4o-mini") ?: "gpt-4o-mini"
         set(value) { prefs.edit().putString("model", value.trim()).apply() }
+
+    var apiFormat: ProviderApiFormat
+        get() = ProviderApiFormat.fromStorage(prefs.getString("api_format", null))
+        set(value) { prefs.edit().putString("api_format", value.storageValue).apply() }
 
     var mcpEndpoint: String
         get() = prefs.getString("mcp_endpoint", "") ?: ""
