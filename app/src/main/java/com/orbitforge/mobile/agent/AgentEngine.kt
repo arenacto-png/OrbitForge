@@ -3,6 +3,7 @@ package com.orbitforge.mobile.agent
 import android.content.Context
 import com.orbitforge.mobile.ai.ProviderConfig
 import com.orbitforge.mobile.ai.ProviderApiAdapter
+import com.orbitforge.mobile.ai.ProviderRequestTrace
 import com.orbitforge.mobile.diagnostics.DiagnosticLog
 import com.orbitforge.mobile.security.SecretStore
 import com.orbitforge.mobile.mcp.McpTool
@@ -147,22 +148,58 @@ class AgentEngine(context: Context) {
             .post(body)
             .build()
 
+        val trace = ProviderRequestTrace.create()
+        DiagnosticLog.add(appContext, "INFO", "ProviderRequest", trace.event("agent", config.apiFormat, "started"))
         return kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
             val call = http.newCall(request)
-            continuation.invokeOnCancellation { call.cancel() }
+            continuation.invokeOnCancellation {
+                call.cancel()
+                DiagnosticLog.add(
+                    appContext,
+                    "INFO",
+                    "ProviderRequest",
+                    trace.event("agent", config.apiFormat, "cancelled", durationMillis = trace.elapsedMillis())
+                )
+            }
             call.enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
-                    if (continuation.isActive) continuation.resumeWithException(e)
+                    if (continuation.isActive) {
+                        DiagnosticLog.add(
+                            appContext,
+                            "ERROR",
+                            "ProviderRequest",
+                            trace.event(
+                                "agent",
+                                config.apiFormat,
+                                "failed",
+                                durationMillis = trace.elapsedMillis(),
+                                errorType = e.javaClass.simpleName
+                            )
+                        )
+                        continuation.resumeWithException(IOException("Сетевая ошибка провайдера [request_id=${trace.id}].", e))
+                    }
                 }
 
                 override fun onResponse(call: Call, response: Response) {
                     response.use {
                         try {
                             val text = response.body?.byteStream()?.use { BoundedResponseBodyReader.read(it) }.orEmpty()
+                            DiagnosticLog.add(
+                                appContext,
+                                if (response.isSuccessful) "INFO" else "ERROR",
+                                "ProviderRequest",
+                                trace.event(
+                                    "agent",
+                                    config.apiFormat,
+                                    if (response.isSuccessful) "headers_received" else "http_error",
+                                    statusCode = response.code,
+                                    durationMillis = trace.elapsedMillis()
+                                )
+                            )
                             if (!response.isSuccessful) {
                                 val safe = DiagnosticLog.redact(text).take(500)
-                                DiagnosticLog.add(appContext, "ERROR", "AgentEngine", "HTTP " + response.code + ": " + safe)
-                                throw IOException("Ошибка API HTTP " + response.code + ": " + safe.ifBlank { response.message })
+                                DiagnosticLog.add(appContext, "ERROR", "AgentEngine", "request_id=${trace.id} HTTP " + response.code + ": " + safe)
+                                throw IOException("Ошибка API HTTP " + response.code + ": " + safe.ifBlank { response.message } + " [request_id=${trace.id}]")
                             }
                             val parsed = try {
                                 JSONObject(text)
@@ -170,9 +207,35 @@ class AgentEngine(context: Context) {
                                 throw IOException("Не удалось разобрать ответ модели: " + e.message)
                             }
                             val normalized = ProviderApiAdapter.normalizeAgentResponse(config.apiFormat, parsed)
+                            DiagnosticLog.add(
+                                appContext,
+                                "INFO",
+                                "ProviderRequest",
+                                trace.event(
+                                    "agent",
+                                    config.apiFormat,
+                                    "completed",
+                                    statusCode = response.code,
+                                    durationMillis = trace.elapsedMillis()
+                                )
+                            )
                             if (continuation.isActive) continuation.resumeWith(Result.success(normalized))
                         } catch (e: Exception) {
-                            if (continuation.isActive) continuation.resumeWithException(e)
+                            if (continuation.isActive) {
+                                DiagnosticLog.add(
+                                    appContext,
+                                    "ERROR",
+                                    "ProviderRequest",
+                                    trace.event(
+                                        "agent",
+                                        config.apiFormat,
+                                        "failed",
+                                        durationMillis = trace.elapsedMillis(),
+                                        errorType = e.javaClass.simpleName
+                                    )
+                                )
+                                continuation.resumeWithException(e)
+                            }
                         }
                     }
                 }

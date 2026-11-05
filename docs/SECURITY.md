@@ -3,6 +3,7 @@
 - API keys are encrypted using AES/GCM with a key stored in Android Keystore.
 - Never put API keys, access tokens, or signing credentials in source control.
 - Avoid logging authorization headers, raw secrets, or sensitive prompt content.
+- Provider request traces use a locally generated correlation ID plus operation, API format, phase, status, duration, and exception class only. Do not send trace IDs as provider headers or log request URLs, headers, bodies, or prompts.
 - Diagnostic redaction is best-effort; users must inspect reports before sharing.
 - Treat model output, tool names, paths, and arguments as untrusted input.
 - Validate tool arguments against explicit schemas.

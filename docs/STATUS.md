@@ -17,6 +17,7 @@
 - Local Git through JGit in the exact app-private workspace root: initialize a `main` branch, inspect staged/unstaged/untracked status, preview a bounded unified diff, and create a user-reviewed local commit. The commit stages only paths included in the reviewed plan, rechecks the preview fingerprint and staged blob hashes, rejects sensitive paths even for tracked deletions, redacts the full preview if an old/staged diff contains secret-like values, and never pushes to a remote.
 - SAF folder picker with bounded import/export, private workspace editor, and persistent folder permissions.
 - Diagnostic report copy/share with API/GitHub/MCP token redaction and compact crash traces.
+- Provider chat and agent HTTP requests emit local correlation IDs, operation/API-format, HTTP status, duration, and bounded error-class metadata. Correlation IDs are not sent to providers; request URLs, headers, bodies, and prompts are not included in trace events.
 - GitHub Actions workflow on main runs JVM unit tests and builds/uploads a debug APK. Android emulator UI smoke tests are not part of the current main workflow.
 - Unit tests for provider URL rules, diagnostic redaction, workspace path traversal and symlink escapes, strict agent tool-call parsing and round limits, safe workspace-search parsing, syntax highlighting spans/large-file fallback, bounded diff previews, local Git init/status/diff/commit safety, and strict terminal command parsing.
 
@@ -24,7 +25,7 @@
 
 - GitHub Actions has successfully run JVM unit tests and built the debug APK on main. Gradle sync in Android Studio, emulator UI tests, APK installation on a physical device, and local Git interaction on Android still require separate verification.
 - Real API provider compatibility, streaming, cancellation, and tool-call support remain live-verification items. The Anthropic adapter is covered by request/response and SSE unit tests, but has not been tested against a real provider account.
-- Provider usage/error diagnostics (bounded error detail display and token usage accounting) remain pending in the open diagnostics PR and are not yet part of main.
+- Provider usage/error diagnostics (actionable bounded HTTP/network guidance and token-usage accounting) remain pending in the pre-existing diagnostics PR and are not yet part of main; request correlation and timing are now implemented.
 - GitHub token scopes, repository creation, and workspace push.
 - MCP compatibility with the target server's protocol/authentication variant.
 - SAF import/export on the user's Android file provider.
