@@ -57,10 +57,24 @@ class OpenAiCompatibleClient(private val context: Context) {
             return@callbackFlow
         }
 
+        val trace = ProviderRequestTrace.create()
+        DiagnosticLog.add(context, "INFO", "ProviderRequest", trace.event("chat", config.apiFormat, "started"))
         val call = http.newCall(request)
         val job = launch(Dispatchers.IO) {
             try {
                 call.execute().use { response ->
+                    DiagnosticLog.add(
+                        context,
+                        if (response.isSuccessful) "INFO" else "ERROR",
+                        "ProviderRequest",
+                        trace.event(
+                            "chat",
+                            config.apiFormat,
+                            if (response.isSuccessful) "headers_received" else "http_error",
+                            statusCode = response.code,
+                            durationMillis = trace.elapsedMillis()
+                        )
+                    )
                     if (!response.isSuccessful) {
                         val body = try {
                             response.body?.byteStream()?.use {
@@ -71,7 +85,7 @@ class OpenAiCompatibleClient(private val context: Context) {
                                 context,
                                 "WARN",
                                 "ApiClient",
-                                "HTTP " + response.code + ": response error body omitted (read limit or I/O failure)"
+                                "request_id=${trace.id} HTTP " + response.code + ": response error body omitted (read limit or I/O failure)"
                             )
                             ""
                         }
@@ -80,16 +94,15 @@ class OpenAiCompatibleClient(private val context: Context) {
                             context,
                             "ERROR",
                             "ApiClient",
-                            "HTTP " + response.code + ": " + safeBody.ifBlank { "<empty or omitted>" }
+                            "request_id=${trace.id} HTTP " + response.code + ": " + safeBody.ifBlank { "<empty or omitted>" }
                         )
-                        throw IOException(
-                            when (response.code) {
-                                401, 403 -> "API отклонил ключ или доступ (HTTP " + response.code + "). Проверь ключ и права."
-                                404 -> "Endpoint или модель не найдены (HTTP 404). Проверь базовый URL и ID модели."
-                                429 -> "Лимит запросов или средств исчерпан (HTTP 429)."
-                                else -> "Ошибка API HTTP " + response.code + ": " + safeBody.take(350)
-                            }
-                        )
+                        val userMessage = when (response.code) {
+                            401, 403 -> "API отклонил ключ или доступ (HTTP " + response.code + "). Проверь ключ и права."
+                            404 -> "Endpoint или модель не найдены (HTTP 404). Проверь базовый URL и ID модели."
+                            429 -> "Лимит запросов или средств исчерпан (HTTP 429)."
+                            else -> "Ошибка API HTTP " + response.code + ": " + safeBody.take(350)
+                        }
+                        throw IOException("$userMessage [request_id=${trace.id}]")
                     }
                     val source = response.body?.source()
                         ?: throw IOException("API вернул пустой ответ.")
@@ -110,21 +123,51 @@ class OpenAiCompatibleClient(private val context: Context) {
                                 context,
                                 "WARN",
                                 "ApiClient",
-                                "Не удалось разобрать SSE-событие: " + e.javaClass.simpleName
+                                "request_id=${trace.id} Не удалось разобрать SSE-событие: " + e.javaClass.simpleName
                             )
                         }
                     }
+                    DiagnosticLog.add(
+                        context,
+                        "INFO",
+                        "ProviderRequest",
+                        trace.event(
+                            "chat",
+                            config.apiFormat,
+                            "completed",
+                            statusCode = response.code,
+                            durationMillis = trace.elapsedMillis()
+                        )
+                    )
                 }
                 close()
             } catch (e: CancellationException) {
+                DiagnosticLog.add(
+                    context,
+                    "INFO",
+                    "ProviderRequest",
+                    trace.event("chat", config.apiFormat, "cancelled", durationMillis = trace.elapsedMillis())
+                )
                 throw e
             } catch (e: Exception) {
                 val safeMessage = DiagnosticLog.redact(e.message.orEmpty()).take(300)
                 DiagnosticLog.add(
                     context,
                     "ERROR",
+                    "ProviderRequest",
+                    trace.event(
+                        "chat",
+                        config.apiFormat,
+                        "failed",
+                        durationMillis = trace.elapsedMillis(),
+                        errorType = e.javaClass.simpleName
+                    )
+                )
+                DiagnosticLog.add(
+                    context,
+                    "ERROR",
                     "ApiClient",
-                    e.javaClass.simpleName + ": " + safeMessage.ifBlank { "network error" }
+                    "request_id=${trace.id} " + e.javaClass.simpleName + ": " + safeMessage.ifBlank { "network error" }
                 )
                 close(e)
             }

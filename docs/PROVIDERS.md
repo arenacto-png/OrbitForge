@@ -18,6 +18,12 @@ OrbitForge currently supports two wire formats behind the same chat and agent in
 - Agent tool schemas are translated from the app's internal OpenAI function definitions to Anthropic `tools/input_schema`. Anthropic `tool_use` response blocks are normalized into the app's existing strict tool-call parser; tool results are sent as `tool_result` content blocks in a user message.
 - The adapter requests up to 4,096 output tokens for Anthropic requests because the Messages API requires `max_tokens`.
 
+## Request diagnostics
+
+Each chat or agent HTTP request receives a locally generated correlation ID. Diagnostic events record the operation, API format, phase, HTTP status when available, elapsed time, and exception class. The ID is included in HTTP failure messages so a user can match the error with the diagnostic report. It is not sent to the provider.
+
+Trace events deliberately omit request URLs, headers, request/response bodies, and prompts. Error-body detail handling and token-usage accounting are tracked separately and are not implied by this request tracing.
+
 ## Scope and limitations
 
 - This is an API-format adapter, not a provider SDK. It supports text chat and standard JSON-object tool use.
