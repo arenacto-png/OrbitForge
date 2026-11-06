@@ -14,7 +14,7 @@
 - [x] Basic provider and diagnostic redaction tests
 - [ ] Verify Gradle sync/build in Android Studio
 - [x] GitHub Actions CI workflow for unit tests and debug APK artifact
-- [ ] Add Gradle wrapper and verify build in Android Studio
+- [x] Add Gradle Wrapper 8.11.1 with pinned distribution SHA-256 and use it in CI
 
 ## Milestone 2 — Agent foundation
 - [x] Unit tests for workspace path traversal and absolute-path rejection
