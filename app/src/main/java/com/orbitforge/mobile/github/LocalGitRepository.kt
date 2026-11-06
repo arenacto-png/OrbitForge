@@ -490,20 +490,7 @@ class LocalGitRepository {
         return canonical
     }
 
-    private fun validatePath(path: String): String {
-        require(path.isNotBlank() && path.length <= 400) { "Некорректный Git-путь." }
-        require(!path.startsWith("/") && !path.contains('\\') && !path.contains('\u0000')) {
-            "Разрешены только относительные Git-пути."
-        }
-        require(path.none { it.code < 0x20 || it.code == 0x7f }) {
-            "Git-путь содержит управляющие символы."
-        }
-        val segments = path.split('/')
-        require(segments.all { it.isNotBlank() && it != "." && it != ".." && !it.equals(".git", true) }) {
-            "Git-путь содержит недопустимый сегмент."
-        }
-        return path
-    }
+    private fun validatePath(path: String): String = LocalGitPathPolicy.validate(path)
 
     private fun readWorkingFile(file: File): ByteArray {
         require(!Files.isSymbolicLink(file.toPath())) { "Символические ссылки не читаются." }
@@ -588,6 +575,32 @@ class LocalGitRepository {
     }
 }
 
+/**
+ * Validates paths used as JGit add/update pathspecs. JGit interprets glob and pathspec
+ * magic characters as patterns, which could stage paths outside the reviewed file set.
+ * Reject those names before any index mutation rather than relying on post-stage checks.
+ */
+internal object LocalGitPathPolicy {
+    private const val PATHSPEC_META = "*?[]:"
+
+    fun validate(path: String): String {
+        require(path.isNotBlank() && path.length <= 400) { "Некорректный Git-путь." }
+        require(!path.startsWith("/") && !path.contains('\\') && !path.contains('\u0000')) {
+            "Разрешены только относительные Git-пути."
+        }
+        require(path.none { it.code < 0x20 || it.code == 0x7f }) {
+            "Git-путь содержит управляющие символы."
+        }
+        require(path.none { it in PATHSPEC_META }) {
+            "Git-путь содержит метасимволы pathspec, которые нельзя безопасно подтвердить: " + path
+        }
+        val segments = path.split('/')
+        require(segments.all { it.isNotBlank() && it != "." && it != ".." && !it.equals(".git", true) }) {
+            "Git-путь содержит недопустимый сегмент."
+        }
+        return path
+    }
+}
 
 /** Shared scanner/redactor so tracked-base and working-copy diff paths use the same policy. */
 internal object LocalGitDiffRedactor {
