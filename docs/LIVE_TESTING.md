@@ -1,6 +1,6 @@
 # Live test checklist
 
-The source is prepared for the first build attempt, but it has not been compiled or installed in this environment. Use this checklist after publishing the source to GitHub.
+GitHub Actions has built the debug APK, but installation and live behavior have not been verified in this environment. Use this checklist after downloading the artifact.
 
 ## 1. Get a debug APK
 
@@ -8,8 +8,9 @@ The source is prepared for the first build attempt, but it has not been compiled
 2. Create a new empty GitHub repository named `OrbitForge` (or another name).
 3. Upload the contents of the `OrbitForge/` folder, not the ZIP as one file. Do not upload API keys, tokens, signing files, or local configuration.
 4. Open **Actions → Android CI** and run the workflow, or push to `main`/`master`.
-5. Confirm the workflow's unit tests and `assembleDebug` steps pass.
-6. Download the `OrbitForge-debug-apk` artifact and install `app-debug.apk` on the Android device.
+5. Confirm the workflow's unit tests, `assembleDebug`, signature verification, and checksum steps pass.
+6. Download and extract the `OrbitForge-debug-apk` artifact. In the folder containing the APK, verify the checksum with `sha256sum -c app-debug.apk.sha256` (or calculate SHA-256 yourself), then verify the APK certificate with `apksigner verify --verbose --print-certs app-debug.apk`.
+7. Install `app-debug.apk` on the Android device only after verification.
 
 ## 2. Smoke-test the app
 

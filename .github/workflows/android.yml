@@ -26,10 +26,14 @@ jobs:
         run: gradle test
       - name: Build debug APK
         run: gradle assembleDebug
+      - name: Verify debug APK signature and SHA-256
+        run: bash scripts/verify-apk.sh app/build/outputs/apk/debug/app-debug.apk
       - name: Upload debug APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: orbitforge-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/debug/*.apk.sha256
           if-no-files-found: error

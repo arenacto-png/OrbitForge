@@ -18,7 +18,7 @@
 - SAF folder picker with bounded import/export, private workspace editor, and persistent folder permissions.
 - Diagnostic report copy/share with API/GitHub/MCP token redaction and compact crash traces.
 - Provider chat and agent HTTP requests emit local correlation IDs, operation/API-format, HTTP status, duration, and bounded error-class metadata. Correlation IDs are not sent to providers; request URLs, headers, bodies, and prompts are not included in trace events.
-- GitHub Actions workflow on main runs JVM unit tests and builds/uploads a debug APK. Android emulator UI smoke tests are not part of the current main workflow.
+- GitHub Actions workflow on main runs JVM unit tests, builds the debug APK, verifies its signature with `apksigner`, computes a SHA-256 checksum, and uploads both APK and checksum. Android emulator UI smoke tests are not part of the current main workflow.
 - Unit tests for provider URL rules, diagnostic redaction, workspace path traversal and symlink escapes, strict agent tool-call parsing and round limits, safe workspace-search parsing, syntax highlighting spans/large-file fallback, bounded diff previews, local Git init/status/diff/commit safety including Git pathspec validation, and strict terminal command parsing.
 
 ## Still requires live verification
@@ -36,5 +36,6 @@
 - Terminal is an allowlisted workspace command runner, not a full Linux shell. Its stateful tokenizer handles quoted arguments and rejects unmatched quotes, multiline input, backslash escape syntax, and shell-control operators outside quotes; quoted operator characters remain literal. Termux/remote execution is not yet implemented.
 - Local Git status/diff/commit is implemented for the app-private workspace with JGit; partial staging and remote push/pull are not implemented. GitHub synchronization remains a separate REST Git Data API flow with bounded preview and stale-plan checks; it does not delete remote files.
 - MCP support is remote HTTPS only; local stdio servers and some OAuth flows are not supported.
+- Release signing credentials are not configured in the repository or CI. The workflow verifies the debug-signed APK only; production release signing remains a private, user-controlled step.
 - Workspace sync uploads the app-private workspace contents, not this source archive automatically.
 - Basic secret scanning is defense-in-depth, not a guarantee. Inspect files before importing/exporting or pushing them.
