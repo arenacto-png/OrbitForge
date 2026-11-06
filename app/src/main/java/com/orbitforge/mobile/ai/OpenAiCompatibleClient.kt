@@ -96,16 +96,14 @@ class OpenAiCompatibleClient(private val context: Context) {
                             "ApiClient",
                             "request_id=${trace.id} HTTP " + response.code + ": " + safeBody.ifBlank { "<empty or omitted>" }
                         )
-                        val userMessage = when (response.code) {
-                            401, 403 -> "API отклонил ключ или доступ (HTTP " + response.code + "). Проверь ключ и права."
-                            404 -> "Endpoint или модель не найдены (HTTP 404). Проверь базовый URL и ID модели."
-                            429 -> "Лимит запросов или средств исчерпан (HTTP 429)."
-                            else -> "Ошибка API HTTP " + response.code + ": " + safeBody.take(350)
-                        }
-                        throw IOException("$userMessage [request_id=${trace.id}]")
+                        throw ProviderHttpException(
+                            response.code,
+                            "${ProviderErrorMessages.forHttpStatus(response.code, safeBody)} [request_id=${trace.id}]"
+                        )
                     }
                     val source = response.body?.source()
                         ?: throw IOException("API вернул пустой ответ.")
+                    var observedUsage: ProviderUsage? = null
                     while (!source.exhausted()) {
                         val line = source.readUtf8Line() ?: continue
                         if (!line.startsWith("data:")) continue
@@ -113,6 +111,9 @@ class OpenAiCompatibleClient(private val context: Context) {
                         if (data == "[DONE]") break
                         try {
                             val event = JSONObject(data)
+                            ProviderUsageParser.parse(event)?.let { usage ->
+                                observedUsage = observedUsage?.merge(usage) ?: usage
+                            }
                             if (ProviderApiAdapter.isStreamFinished(config.apiFormat, event)) break
                             val content = ProviderApiAdapter.parseStreamText(config.apiFormat, event)
                             if (!content.isNullOrEmpty()) trySend(content)
@@ -126,6 +127,14 @@ class OpenAiCompatibleClient(private val context: Context) {
                                 "request_id=${trace.id} Не удалось разобрать SSE-событие: " + e.javaClass.simpleName
                             )
                         }
+                    }
+                    observedUsage?.let { usage ->
+                        DiagnosticLog.add(
+                            context,
+                            "INFO",
+                            "ProviderUsage",
+                            "request_id=${trace.id} ${usage.diagnosticSummary()}"
+                        )
                     }
                     DiagnosticLog.add(
                         context,
@@ -150,7 +159,12 @@ class OpenAiCompatibleClient(private val context: Context) {
                 )
                 throw e
             } catch (e: Exception) {
-                val safeMessage = DiagnosticLog.redact(e.message.orEmpty()).take(300)
+                val isNetworkFailure = e is IOException && ProviderErrorMessages.isNetworkFailure(e)
+                val safeMessage = if (isNetworkFailure) {
+                    ProviderErrorMessages.forNetworkFailure(e as IOException)
+                } else {
+                    DiagnosticLog.redact(e.message.orEmpty()).take(300).ifBlank { "provider response error" }
+                }
                 DiagnosticLog.add(
                     context,
                     "ERROR",
@@ -167,9 +181,12 @@ class OpenAiCompatibleClient(private val context: Context) {
                     context,
                     "ERROR",
                     "ApiClient",
-                    "request_id=${trace.id} " + e.javaClass.simpleName + ": " + safeMessage.ifBlank { "network error" }
+                    "request_id=${trace.id} " +
+                        (if (isNetworkFailure) "Network failure ${e.javaClass.simpleName}" else "${e.javaClass.simpleName}: $safeMessage")
                 )
-                close(e)
+                close(
+                    if (isNetworkFailure) IOException("$safeMessage [request_id=${trace.id}]", e) else e
+                )
             }
         }
 

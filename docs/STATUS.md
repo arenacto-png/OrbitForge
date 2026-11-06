@@ -3,7 +3,7 @@
 ## Implemented in source (not yet live-verified)
 
 - Native Compose UI: agent/chat, projects, text editor, limited terminal, settings, diagnostics.
-- OpenAI-compatible Chat Completions and Anthropic Messages streaming chat, provider-format selection, and an in-app connection test. The Anthropic adapter translates agent tool schemas, tool-use responses, and tool-result history into the shared strict tool-call validation path.
+- OpenAI-compatible Chat Completions and Anthropic Messages streaming chat, provider-format selection, and an in-app connection test. The Anthropic adapter translates agent tool schemas, tool-use responses, and tool-result history into the shared strict tool-call validation path. Common provider HTTP/network failures map to actionable guidance; error excerpts are bounded and redacted, and usage counters are recorded when returned.
 - Local conversation history and separate encrypted API/GitHub/MCP credentials using Android Keystore.
 - Cancelled chat/agent requests replace the pending assistant placeholder with a durable cancellation result; partial chat output is retained with an incomplete-response marker, and the history is persisted.
 - Bounded tool-calling agent with file listing, reading, search, writes with approval, and allowlisted terminal commands. Provider tool-call batches are validated completely before execution; malformed JSON, duplicate call IDs, and unknown tools fail closed. The agent is limited to eight model rounds and eight tool calls per round, and does not execute tools returned in its final permitted round.
@@ -19,13 +19,13 @@
 - Diagnostic report copy/share with API/GitHub/MCP token redaction and compact crash traces.
 - Provider chat and agent HTTP requests emit local correlation IDs, operation/API-format, HTTP status, duration, and bounded error-class metadata. Correlation IDs are not sent to providers; request URLs, headers, bodies, and prompts are not included in trace events.
 - GitHub Actions workflow on main runs JVM unit tests and builds/uploads a debug APK. Android emulator UI smoke tests are not part of the current main workflow.
-- Unit tests for provider URL rules, diagnostic redaction, workspace path traversal and symlink escapes, strict agent tool-call parsing and round limits, safe workspace-search parsing, syntax highlighting spans/large-file fallback, bounded diff previews, local Git init/status/diff/commit safety including Git pathspec validation, and strict terminal command parsing.
+- Unit tests for provider URL rules, diagnostic redaction, workspace path traversal and symlink escapes, strict agent tool-call parsing and round limits, safe workspace-search parsing, syntax highlighting spans/large-file fallback, bounded diff previews, local Git init/status/diff/commit safety including Git pathspec validation, provider error/usage parsing, and strict terminal command parsing.
 
 ## Still requires live verification
 
 - GitHub Actions has successfully run JVM unit tests and built the debug APK on main. Gradle sync in Android Studio, emulator UI tests, APK installation on a physical device, and local Git interaction on Android still require separate verification.
 - Real API provider compatibility, streaming, cancellation, and tool-call support remain live-verification items. The Anthropic adapter is covered by request/response and SSE unit tests, but has not been tested against a real provider account.
-- Provider usage/error diagnostics (actionable bounded HTTP/network guidance and token-usage accounting) remain pending in the pre-existing diagnostics PR and are not yet part of main; request correlation and timing are now implemented.
+- Provider usage/error diagnostics are implemented in the diagnostics branch but still require live verification against real providers; request correlation and timing are already present in main.
 - GitHub token scopes, repository creation, and workspace push.
 - MCP compatibility with the target server's protocol/authentication variant.
 - SAF import/export on the user's Android file provider.

@@ -4,6 +4,9 @@ import android.content.Context
 import com.orbitforge.mobile.ai.ProviderConfig
 import com.orbitforge.mobile.ai.ProviderApiAdapter
 import com.orbitforge.mobile.ai.ProviderRequestTrace
+import com.orbitforge.mobile.ai.ProviderErrorMessages
+import com.orbitforge.mobile.ai.ProviderHttpException
+import com.orbitforge.mobile.ai.ProviderUsageParser
 import com.orbitforge.mobile.diagnostics.DiagnosticLog
 import com.orbitforge.mobile.security.SecretStore
 import com.orbitforge.mobile.mcp.McpTool
@@ -176,14 +179,32 @@ class AgentEngine(context: Context) {
                                 errorType = e.javaClass.simpleName
                             )
                         )
-                        continuation.resumeWithException(IOException("Сетевая ошибка провайдера [request_id=${trace.id}].", e))
+                        DiagnosticLog.add(
+                            appContext,
+                            "ERROR",
+                            "AgentEngine",
+                            "request_id=${trace.id} Network failure ${e.javaClass.simpleName}"
+                        )
+                        val userMessage = ProviderErrorMessages.forNetworkFailure(e)
+                        continuation.resumeWithException(IOException("$userMessage [request_id=${trace.id}]", e))
                     }
                 }
 
                 override fun onResponse(call: Call, response: Response) {
                     response.use {
                         try {
-                            val text = response.body?.byteStream()?.use { BoundedResponseBodyReader.read(it) }.orEmpty()
+                            val text = try {
+                                response.body?.byteStream()?.use { BoundedResponseBodyReader.read(it) }.orEmpty()
+                            } catch (e: IOException) {
+                                if (response.isSuccessful) throw e
+                                DiagnosticLog.add(
+                                    appContext,
+                                    "WARN",
+                                    "AgentEngine",
+                                    "request_id=${trace.id} HTTP ${response.code}: error body omitted (${e.javaClass.simpleName})"
+                                )
+                                ""
+                            }
                             DiagnosticLog.add(
                                 appContext,
                                 if (response.isSuccessful) "INFO" else "ERROR",
@@ -197,14 +218,30 @@ class AgentEngine(context: Context) {
                                 )
                             )
                             if (!response.isSuccessful) {
-                                val safe = DiagnosticLog.redact(text).take(500)
-                                DiagnosticLog.add(appContext, "ERROR", "AgentEngine", "request_id=${trace.id} HTTP " + response.code + ": " + safe)
-                                throw IOException("Ошибка API HTTP " + response.code + ": " + safe.ifBlank { response.message } + " [request_id=${trace.id}]")
+                                val safe = DiagnosticLog.redact(text).take(1200)
+                                DiagnosticLog.add(
+                                    appContext,
+                                    "ERROR",
+                                    "AgentEngine",
+                                    "request_id=${trace.id} HTTP ${response.code}: ${safe.ifBlank { "<empty>" }}"
+                                )
+                                throw ProviderHttpException(
+                                    response.code,
+                                    "${ProviderErrorMessages.forHttpStatus(response.code, safe)} [request_id=${trace.id}]"
+                                )
                             }
                             val parsed = try {
                                 JSONObject(text)
                             } catch (e: Exception) {
-                                throw IOException("Не удалось разобрать ответ модели: " + e.message)
+                                throw IOException("Не удалось разобрать ответ модели: " + e.javaClass.simpleName, e)
+                            }
+                            ProviderUsageParser.parse(parsed)?.let { usage ->
+                                DiagnosticLog.add(
+                                    appContext,
+                                    "INFO",
+                                    "ProviderUsage",
+                                    "request_id=${trace.id} ${usage.diagnosticSummary()}"
+                                )
                             }
                             val normalized = ProviderApiAdapter.normalizeAgentResponse(config.apiFormat, parsed)
                             DiagnosticLog.add(

@@ -24,7 +24,7 @@
 - [x] Add conversation/task cancellation and recovery tests (persist cancelled result and preserve partial chat output)
 - [x] Add provider-specific request/response adapters for OpenAI-compatible Chat Completions and Anthropic Messages (streaming chat and agent tool calls)
 - [x] Add local provider request correlation IDs and duration/status events without logging prompts or credentials
-- [ ] Add clearer provider usage/error diagnostics (bounded error details and token-usage accounting)
+- [x] Add actionable provider HTTP errors, bounded error details, and token-usage diagnostics when providers return counters
 
 ## Milestone 3 — Developer workspace
 - [x] Basic project file list and text editor
