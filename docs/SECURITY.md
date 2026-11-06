@@ -38,3 +38,8 @@ Remote diff retrieval is additionally limited to 40 modified remote files and 2 
 ## Local Git commit safety
 
 Local Git opens only the `.git` directory directly inside OrbitForge's app-private workspace; it never discovers or modifies a parent repository and has no remote push/pull path. Before a commit, the user reviews a bounded diff covering staged, unstaged, and untracked text changes. The commit stages only paths included in the reviewed plan (partial staging is not supported), validates relative paths and symlink boundaries, rejects Git pathspec metacharacters (`*`, `?`, brackets, and `:`) before staging, rejects sensitive filenames (including tracked deletions), secret-like current content, binary/non-UTF-8 files, conflicts, and oversized changes, then rechecks the reviewed snapshot and staged blob hashes. If an old/staged diff contains secret-like values, the whole preview is replaced with a redacted summary. Limits are 200 changed paths, 200 KiB per file, 2 MiB total working content, 30 diff files, and 200 KiB of diff output. Secret scanning is defense-in-depth, not a guarantee; the user should inspect the preview.
+
+
+## Gradle Wrapper integrity
+
+The checked-in Wrapper JAR is sourced from the official Gradle 8.11.1 tag and has SHA-256 `2db75c40782f5e8ba1fc278a5574bab070adccb2d21ca5a6e5ed840888448046`. The downloaded Gradle 8.11.1 binary distribution is pinned with `distributionSha256Sum`. CI uses `gradle/actions/setup-gradle@v4`, which validates Wrapper JAR checksums automatically. Review and verify both Wrapper files when upgrading Gradle.
