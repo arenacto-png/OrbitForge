@@ -7,6 +7,7 @@
 - Local conversation history and separate encrypted API/GitHub/MCP credentials using Android Keystore.
 - Cancelled chat/agent requests replace the pending assistant placeholder with a durable cancellation result; partial chat output is retained with an incomplete-response marker, and the history is persisted.
 - Bounded tool-calling agent with file listing, reading, search, writes with approval, and allowlisted terminal commands. Provider tool-call batches are validated completely before execution; malformed JSON, duplicate call IDs, and unknown tools fail closed. The agent is limited to eight model rounds and eight tool calls per round, and does not execute tools returned in its final permitted round.
+- Agent can apply structured exact-match patches to 1–8 existing workspace files (up to 24 edits total and 10 KiB per file); it validates all targets/results, shows one combined bounded diff, requests one approval, rechecks files before writing, and attempts guarded rollback without overwriting intervening user edits.
 - Workspace screen searches file names and text contents asynchronously, limits displayed results, filters sensitive paths and secret-like content through the existing search policy, and opens matching files in the editor.
 - The file editor applies lightweight syntax coloring to common code/config formats without changing text or cursor offsets; files over 100,000 characters fall back to plain text.
 - Before saving editor changes, the user can inspect a bounded diff and explicitly apply or reject the edit; rejecting restores the original buffer. The preview is capped to 80 lines and 6,000 characters (plus a truncation marker).
@@ -19,7 +20,7 @@
 - Diagnostic report copy/share with API/GitHub/MCP token redaction and compact crash traces.
 - Provider chat and agent HTTP requests emit local correlation IDs, operation/API-format, HTTP status, duration, and bounded error-class metadata. Correlation IDs are not sent to providers; request URLs, headers, bodies, and prompts are not included in trace events.
 - GitHub Actions workflow on main runs JVM unit tests and builds/uploads a debug APK. Android emulator UI smoke tests are not part of the current main workflow.
-- Unit tests for provider URL rules, diagnostic redaction, workspace path traversal and symlink escapes, strict agent tool-call parsing and round limits, safe workspace-search parsing, syntax highlighting spans/large-file fallback, bounded diff previews, local Git init/status/diff/commit safety including Git pathspec validation, and strict terminal command parsing.
+- Unit tests for provider URL rules, diagnostic redaction, workspace path traversal and symlink escapes, strict agent tool-call parsing and round limits, safe workspace-search parsing, syntax highlighting spans/large-file fallback, bounded diff previews, local Git init/status/diff/commit safety including Git pathspec validation, structured patch validation and rollback guards, and strict terminal command parsing.
 
 ## Still requires live verification
 

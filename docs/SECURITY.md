@@ -20,8 +20,8 @@
 
 ## Agent tool policy
 
-- The first agent tools are limited to listing files, reading UTF-8 text, and writing UTF-8 files in the app-private workspace.
-- Write operations are capped at 10 KB and require explicit confirmation in the UI.
+- Agent tools are limited to listing files, reading UTF-8 text, writing UTF-8 files, applying bounded structured patches, and invoking the allowlisted terminal in the app-private workspace.
+- Whole-file agent writes are capped at 10 KB and require explicit confirmation in the UI. Structured patches are limited to existing non-sensitive files, validate exact unique matches, and require one confirmation for the complete bounded diff.
 - Workspace paths are canonicalized and checked against the workspace root to block ordinary traversal and symlink escapes.
 - The workspace terminal uses a stateful tokenizer rather than a system shell. It rejects unmatched quotes, multiline input, unsupported backslash escapes, and shell-control operators outside quoted arguments; quoted operator characters are treated as data.
 
