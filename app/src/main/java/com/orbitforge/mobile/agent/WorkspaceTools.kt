@@ -50,6 +50,23 @@ class WorkspaceTools(context: Context) {
         else content.take(40_000) + "\n\n[Файл сокращён для контекста агента; полная версия доступна в редакторе.]"
     }
 
+    /**
+     * Full existing-file content for the agent's write approval diff. Unlike the context reader,
+     * this is not truncated: a partial old file would make the approval preview misleading.
+     * Sensitive canonical targets and secret-like contents are rejected before the UI sees a diff.
+     */
+    fun readFileForAgentWritePreview(relativePath: String): String {
+        val file = resolve(relativePath)
+        require(
+            !isSensitivePath(relativePath) && !WorkspaceSensitivePathPolicy.isSensitiveTarget(root, file)
+        ) { "Предпросмотр записи в секретные файлы через агента запрещён." }
+        val content = readFile(file)
+        require(!looksLikeSecretContent(content)) {
+            "Файл похож на содержащий секреты; предпросмотр записи агентом заблокирован."
+        }
+        return content
+    }
+
     fun writeFile(relativePath: String, content: String): String {
         val file = resolve(relativePath)
         require(

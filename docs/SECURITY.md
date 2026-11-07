@@ -21,7 +21,7 @@
 ## Agent tool policy
 
 - The first agent tools are limited to listing files, reading UTF-8 text, and writing UTF-8 files in the app-private workspace.
-- Write operations are capped at 10 KB and require explicit confirmation in the UI.
+- Write operations are capped at 10 KB and require explicit confirmation in the UI. Before displaying an agent write diff, existing content is read through the same canonical sensitive-path and secret-content policy; previews fail closed rather than showing sensitive file contents.
 - Workspace paths are canonicalized and checked against the workspace root to block ordinary traversal and symlink escapes.
 - The workspace terminal uses a stateful tokenizer rather than a system shell. It rejects unmatched quotes, multiline input, unsupported backslash escapes, and shell-control operators outside quoted arguments; quoted operator characters are treated as data.
 
