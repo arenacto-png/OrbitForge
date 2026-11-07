@@ -34,11 +34,8 @@ class WorkspaceTerminal(context: Context) {
                 tools.readFileForAgent(params[0]).lineSequence().take(count).joinToString("\n")
             }
             "grep" -> {
-                require(params.size >= 2) { "Использование: grep <текст> <путь>" }
-                val needle = params[0]
-                tools.readFile(params[1]).lineSequence()
-                    .mapIndexedNotNull { index, line -> if (line.contains(needle, ignoreCase = true)) "${index + 1}: $line" else null }
-                    .take(100).joinToString("\n").ifBlank { "Совпадений не найдено." }
+                require(params.size == 2) { "Использование: grep <текст> <путь>" }
+                WorkspaceTerminalGrep.search(params[0], params[1], tools::readFileForAgent)
             }
             "wc" -> {
                 require(params.size == 1) { "Использование: wc <путь>" }
