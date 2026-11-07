@@ -42,7 +42,7 @@ internal object WorkspaceTerminalGrep {
             matches += "${index + 1}: $line"
         }
 
-        if (matches.isEmpty()) return NO_MATCHES
+        if (matches.isEmpty()) return NO_MATCHES.take(maxOutputChars)
         val output = matches.joinToString("\n")
         return if (truncatedByMatchCount || output.length > maxOutputChars) {
             withTruncationMarker(output, maxOutputChars)

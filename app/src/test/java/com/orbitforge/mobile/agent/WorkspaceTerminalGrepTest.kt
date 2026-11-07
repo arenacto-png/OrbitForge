@@ -68,6 +68,16 @@ class WorkspaceTerminalGrepTest {
     }
 
     @Test
+    fun noMatchMessageRespectsTheConfiguredOutputLimit() {
+        val result = WorkspaceTerminalGrep.format(
+            content = "hello",
+            needle = "needle",
+            maxOutputChars = 5
+        )
+        assertEquals(5, result.length)
+    }
+
+    @Test
     fun noMatchesHaveAStableMessage() {
         assertEquals(
             "Совпадений не найдено.",
