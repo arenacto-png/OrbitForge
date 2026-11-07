@@ -30,8 +30,9 @@ class WorkspaceTools(context: Context) {
             }
     }
 
-    fun readFile(relativePath: String): String {
-        val file = resolve(relativePath)
+    fun readFile(relativePath: String): String = readFile(resolve(relativePath))
+
+    private fun readFile(file: File): String {
         require(file.isFile) { "Файл не найден." }
         require(file.length() <= 512 * 1024) { "Файл больше лимита чтения 512 КБ." }
         return file.readText(Charsets.UTF_8)
@@ -39,17 +40,22 @@ class WorkspaceTools(context: Context) {
 
     /** Bounded file reader for model context; the user editor can still read the full file. */
     fun readFileForAgent(relativePath: String): String {
-        require(!isSensitivePath(relativePath)) { "Чтение секретных файлов через инструменты агента запрещено." }
-        val content = readFile(relativePath)
+        val file = resolve(relativePath)
+        require(
+            !isSensitivePath(relativePath) && !WorkspaceSensitivePathPolicy.isSensitiveTarget(root, file)
+        ) { "Чтение секретных файлов через инструменты агента запрещено." }
+        val content = readFile(file)
         require(!looksLikeSecretContent(content)) { "Файл похож на содержащий секреты; доступ агента заблокирован." }
         return if (content.length <= 40_000) content
         else content.take(40_000) + "\n\n[Файл сокращён для контекста агента; полная версия доступна в редакторе.]"
     }
 
     fun writeFile(relativePath: String, content: String): String {
-        require(!isSensitivePath(relativePath)) { "Запись в секретные файлы через агента запрещена." }
-        require(!looksLikeSecretContent(content)) { "Содержимое похоже на секрет или токен; запись агентом заблокирована." }
         val file = resolve(relativePath)
+        require(
+            !isSensitivePath(relativePath) && !WorkspaceSensitivePathPolicy.isSensitiveTarget(root, file)
+        ) { "Запись в секретные файлы через агента запрещена." }
+        require(!looksLikeSecretContent(content)) { "Содержимое похоже на секрет или токен; запись агентом заблокирована." }
         require(content.toByteArray(Charsets.UTF_8).size <= 10 * 1024) { "Файл больше лимита записи 10 КБ. Разбей его на несколько небольших файлов." }
         file.parentFile?.mkdirs()
         AtomicWorkspaceFileWriter.write(file, content)
@@ -69,21 +75,24 @@ class WorkspaceTools(context: Context) {
     fun searchText(query: String, relativePath: String = ""): String {
         require(query.isNotBlank()) { "Укажи текст для поиска." }
         require(query.length <= 200) { "Поисковый запрос слишком длинный." }
-        require(!isSensitivePath(relativePath)) { "Поиск по секретным файлам через инструменты агента запрещён." }
         val target = resolve(relativePath)
+        require(
+            !isSensitivePath(relativePath) && !WorkspaceSensitivePathPolicy.isSensitiveTarget(root, target)
+        ) { "Поиск по секретным файлам через инструменты агента запрещён." }
         require(target.exists()) { "Путь не найден." }
         val candidates = if (target.isFile) sequenceOf(target) else target.walkTopDown().filter { it.isFile }
         val matches = mutableListOf<String>()
         var inspected = 0
         for (file in candidates) {
             if (inspected >= 200 || matches.size >= 100) break
-            val relativePath = root.toPath().relativize(file.toPath()).toString()
-            if (isSensitivePath(relativePath)) continue
+            val candidateRelativePath = root.toPath().relativize(file.toPath()).toString()
+            if (isSensitivePath(candidateRelativePath)) continue
             val canonical = file.canonicalFile
             if (canonical != root.canonicalFile && !canonical.path.startsWith(root.canonicalPath + File.separator)) continue
-            if (file.length() > 512 * 1024) continue
+            if (WorkspaceSensitivePathPolicy.isSensitiveTarget(root, canonical)) continue
+            if (canonical.length() > 512 * 1024) continue
             inspected++
-            val fileContent = try { file.readText(Charsets.UTF_8) } catch (_: Exception) { continue }
+            val fileContent = try { canonical.readText(Charsets.UTF_8) } catch (_: Exception) { continue }
             if (looksLikeSecretContent(fileContent)) continue
             val lines = fileContent.lineSequence().toList()
             lines.forEachIndexed { index, line ->
@@ -105,15 +114,8 @@ class WorkspaceTools(context: Context) {
         return patterns.any { it.containsMatchIn(content) }
     }
 
-    private fun isSensitivePath(relativePath: String): Boolean {
-        val normalized = relativePath.replace('\\', '/').lowercase()
-        val name = normalized.substringAfterLast('/')
-        return name.startsWith(".env") || name in setOf(
-            "local.properties", "secrets.properties", "credentials.json", "id_rsa", "id_ed25519"
-        ) || name.endsWith(".jks") || name.endsWith(".keystore") || name.endsWith(".p12") ||
-            name.endsWith(".pfx") || name.endsWith(".pem") || name.endsWith(".key") ||
-            normalized.split('/').any { it == ".ssh" }
-    }
+    private fun isSensitivePath(relativePath: String): Boolean =
+        WorkspaceSensitivePathPolicy.isSensitive(relativePath)
 
     fun rootPath(): String = root.absolutePath
 

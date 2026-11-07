@@ -7,7 +7,7 @@
 - Diagnostic redaction is best-effort; users must inspect reports before sharing.
 - Treat model output, tool names, paths, and arguments as untrusted input.
 - Validate tool arguments against explicit schemas.
-- Validate paths before showing approval prompts and restrict file operations to the chosen workspace root; reject traversal and symlink escapes.
+- Validate paths before showing approval prompts and restrict file operations to the chosen workspace root; reject traversal and symlink escapes. Agent read/write/search policies must check the canonical target as well as the user-supplied path so in-root symlink aliases cannot bypass sensitive-file exclusions.
 - Ask for approval before destructive writes, shell commands, network access, or publishing changes.
 - App-private workspace saves write UTF-8 content to a same-directory temporary file, sync it, and replace the target with an atomic move. If the filesystem cannot provide an atomic move, the save fails closed instead of falling back to a direct truncating write. This protects individual files, not a multi-file operation.
 - Provide cancellation, timeouts, output-size limits, and a bounded number of agent steps. Non-streaming agent-provider and remote MCP HTTP response bodies are capped at 2 MiB before JSON/SSE parsing.

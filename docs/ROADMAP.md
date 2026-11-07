@@ -19,6 +19,7 @@
 ## Milestone 2 — Agent foundation
 - [x] Unit tests for workspace path traversal and absolute-path rejection
 - [x] Add tests for symlink escapes, strict tool-call parsing and agent step limits
+- [x] Block sensitive-file access through in-workspace symlink aliases for agent reads, writes, and search
 - [x] Bounded diff preview before agent writes; approve/reject supported
 - [ ] Support structured multi-file patch application
 - [x] Add conversation/task cancellation and recovery tests (persist cancelled result and preserve partial chat output)
