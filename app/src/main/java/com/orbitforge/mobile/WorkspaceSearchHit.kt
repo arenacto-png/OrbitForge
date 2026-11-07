@@ -1,5 +1,7 @@
 package com.orbitforge.mobile
 
+import com.orbitforge.mobile.agent.WorkspaceSensitivePathPolicy
+
 /**
  * A safe, clickable workspace search result. The path is resolved against the app-private workspace
  * file list rather than guessed from colons that may also appear in filenames or matched text.
@@ -34,13 +36,5 @@ internal object WorkspaceSearchResultParser {
 
 /** Path-name filtering for user-facing search; content reads use WorkspaceTools policy too. */
 internal object WorkspaceSearchPathPolicy {
-    fun isSensitive(path: String): Boolean {
-        val normalized = path.replace('\\', '/').lowercase()
-        val name = normalized.substringAfterLast('/')
-        return name.startsWith(".env") || name in setOf(
-            "local.properties", "secrets.properties", "credentials.json", "id_rsa", "id_ed25519"
-        ) || name.endsWith(".jks") || name.endsWith(".keystore") || name.endsWith(".p12") ||
-            name.endsWith(".pfx") || name.endsWith(".pem") || name.endsWith(".key") ||
-            normalized.split('/').any { it == ".ssh" }
-    }
+    fun isSensitive(path: String): Boolean = WorkspaceSensitivePathPolicy.isSensitive(path)
 }
