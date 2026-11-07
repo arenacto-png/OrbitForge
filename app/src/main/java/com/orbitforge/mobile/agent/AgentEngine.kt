@@ -281,7 +281,7 @@ class AgentEngine(context: Context) {
                     require(path.isNotBlank()) { "Путь не может быть пустым." }
                     val target = workspace.validatePath(path)
                     val existed = target.exists()
-                    val previousContent = if (existed) workspace.readFile(path) else ""
+                    val previousContent = if (existed) workspace.readFileForAgentWritePreview(path) else ""
                     val diffPreview = WorkspaceDiff.preview(previousContent, content, isNewFile = !existed)
                     onStatus("Ожидается подтверждение записи: $path")
                     if (!approveWrite(WriteApproval(path, content, diffPreview))) {
