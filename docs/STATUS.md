@@ -16,7 +16,7 @@
 - Remote HTTP MCP initialization, tool discovery, and tool calls; each external call requires confirmation. MCP and non-streaming agent-provider HTTP response bodies are capped at 2 MiB before parsing; returned MCP text is capped at 20,000 characters.
 - GitHub repository listing/creation and workspace sync with a reviewed added/modified diff; unchanged files are omitted, known secret-like content is skipped, local hashes and the remote branch head are rechecked before a non-force commit, and remote-only files are never deleted; remote diff retrieval is capped at 40 modified files and 2 MiB.
 - Local Git through JGit in the exact app-private workspace root: initialize a `main` branch, inspect staged/unstaged/untracked status, preview a bounded unified diff, and create a user-reviewed local commit. The commit stages only paths included in the reviewed plan, rechecks the preview fingerprint and staged blob hashes, rejects Git pathspec metacharacters before staging, rejects sensitive paths even for tracked deletions, redacts the full preview if an old/staged diff contains secret-like values, and never pushes to a remote.
-- SAF folder picker with bounded import/export, private workspace editor, and persistent folder permissions.
+- SAF folder picker with bounded import/export, private workspace editor, and persistent folder permissions. Export stages a complete temporary document before replacing an existing destination; it attempts to restore the prior document if promotion fails and retains a recoverable backup if restoration cannot be confirmed.
 - Diagnostic report copy/share with API/GitHub/MCP token redaction and compact crash traces.
 - Provider chat and agent HTTP requests emit local correlation IDs, operation/API-format, HTTP status, duration, and bounded error-class metadata. Correlation IDs are not sent to providers; request URLs, headers, bodies, and prompts are not included in trace events.
 - GitHub Actions workflow on main runs JVM unit tests and builds/uploads a debug APK through the checked-in Gradle Wrapper (8.11.1, distribution SHA-256 pinned); setup-gradle also validates the wrapper JAR. Android emulator UI smoke tests are not part of the current main workflow.
@@ -29,7 +29,7 @@
 - Provider usage/error diagnostics (actionable bounded HTTP/network guidance and token-usage accounting) remain pending in the pre-existing diagnostics PR and are not yet part of main; request correlation and timing are now implemented.
 - GitHub token scopes, repository creation, and workspace push.
 - MCP compatibility with the target server's protocol/authentication variant.
-- SAF import/export on the user's Android file provider.
+- SAF import/export on the user's Android file provider, especially provider-specific rename/backup behavior during destination replacement.
 - Review a copied diagnostic report to confirm it contains no sensitive data.
 
 ## Known scope limits
@@ -38,4 +38,5 @@
 - Local Git status/diff/commit is implemented for the app-private workspace with JGit; partial staging and remote push/pull are not implemented. GitHub synchronization remains a separate REST Git Data API flow with bounded preview and stale-plan checks; it does not delete remote files.
 - MCP support is remote HTTPS only; local stdio servers and some OAuth flows are not supported.
 - Workspace sync uploads the app-private workspace contents, not this source archive automatically.
+- SAF export replacement depends on the selected document provider supporting rename operations; unsupported or failed promotions are skipped rather than falling back to a destructive direct overwrite.
 - Basic secret scanning is defense-in-depth, not a guarantee. Inspect files before importing/exporting or pushing them.

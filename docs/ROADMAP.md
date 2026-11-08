@@ -6,6 +6,7 @@
 - [x] Streaming OpenAI-compatible chat
 - [x] Local bounded chat history
 - [x] App-private workspace and safe user-selected folder import/export
+- [x] Stage SAF export replacements before promotion and preserve prior destination data on failed writes
 - [x] Diagnostic log, redaction, uncaught-crash traces, copy/share report
 - [x] Agent mode with a bounded function-calling loop
 - [x] Workspace list/read/search/write tools with user approval for writes

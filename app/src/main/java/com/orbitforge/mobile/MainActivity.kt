@@ -850,8 +850,9 @@ private fun ProjectsScreen(storage: AppStorage, onOpenFile: (String) -> Unit, on
                         scope.launch {
                             try {
                                 val result = withContext(Dispatchers.IO) { transfer.exportTo(uri) }
-                                notice = "Экспортировано файлов: ${result.copied}, пропущено: ${result.skipped}."
-                                DiagnosticLog.add(context, "INFO", "WorkspaceTransfer", "Export complete: copied=${result.copied}; skipped=${result.skipped}")
+                                val warningText = result.warnings.firstOrNull()?.let { " Предупреждение: " + it }.orEmpty()
+                                notice = "Экспортировано файлов: ${result.copied}, пропущено: ${result.skipped}." + warningText
+                                DiagnosticLog.add(context, "INFO", "WorkspaceTransfer", "Export complete: copied=${result.copied}; skipped=${result.skipped}; warnings=${result.warnings.size}")
                             } catch (e: Exception) {
                                 notice = "Экспорт не выполнен: ${e.message ?: e.javaClass.simpleName}"
                                 DiagnosticLog.add(context, "ERROR", "WorkspaceTransfer", "Export failed: ${e.javaClass.simpleName}: ${e.message ?: "no details"}")
