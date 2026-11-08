@@ -7,7 +7,7 @@ import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
 
-data class TransferResult(val copied: Int, val skipped: Int, val bytes: Long)
+data class TransferResult(val copied: Int, val skipped: Int, val bytes: Long, val warnings: List<String> = emptyList())
 
 class WorkspaceTransfer(private val context: Context) {
     private val root = File(context.filesDir, "orbitforge-workspace").apply { mkdirs() }
@@ -46,7 +46,11 @@ class WorkspaceTransfer(private val context: Context) {
             val input = context.contentResolver.openInputStream(document.uri)
             if (input == null) { skipped++; continue }
             try {
-                val bytes = copyBounded(input, target.outputStream(), MAX_TOTAL_BYTES - totalBytes)
+                val bytes = input.use { source ->
+                    target.outputStream().use { sink ->
+                        copyBounded(source, sink, MAX_TOTAL_BYTES - totalBytes)
+                    }
+                }
                 totalBytes += bytes
                 if (looksLikeSecretFile(target)) {
                     target.delete()
@@ -79,6 +83,7 @@ class WorkspaceTransfer(private val context: Context) {
         var copied = 0
         var skipped = 0
         var totalBytes = 0L
+        val warnings = mutableListOf<String>()
         for (file in candidates) {
             if (file.length() > MAX_FILE_BYTES || totalBytes + file.length() > MAX_TOTAL_BYTES) {
                 skipped++
@@ -107,23 +112,26 @@ class WorkspaceTransfer(private val context: Context) {
             }
             if (failed) { skipped++; continue }
             val filename = parts.last()
-            val existing = parent.findFile(filename)
-            if (existing?.isDirectory == true) { skipped++; continue }
-            if (existing != null && !existing.delete()) { skipped++; continue }
-            val target = parent.createFile("application/octet-stream", filename)
-            if (target == null) { skipped++; continue }
-            val output = context.contentResolver.openOutputStream(target.uri, "wt")
-            if (output == null) { target.delete(); skipped++; continue }
-            try {
-                val bytes = copyBounded(file.inputStream(), output, MAX_TOTAL_BYTES - totalBytes)
-                totalBytes += bytes
+            val outcome = WorkspaceExportTransaction.write(
+                SafExportDirectory(context, parent),
+                filename,
+                "application/octet-stream"
+            ) { sink ->
+                file.inputStream().use { source ->
+                    copyBounded(source, sink, MAX_TOTAL_BYTES - totalBytes)
+                }
+            }
+            if (outcome.copied) {
                 copied++
-            } catch (_: Exception) {
-                target.delete()
+                totalBytes += outcome.bytes
+            } else {
                 skipped++
             }
+            outcome.warning?.let {
+                if (warnings.size < MAX_TRANSFER_WARNINGS) warnings += it.take(240)
+            }
         }
-        return TransferResult(copied, skipped, totalBytes)
+        return TransferResult(copied, skipped, totalBytes, warnings.toList())
     }
 
     private fun safeTarget(relative: String): File {
@@ -161,26 +169,52 @@ class WorkspaceTransfer(private val context: Context) {
     }
 
     private fun copyBounded(input: InputStream, output: OutputStream, allowedBytes: Long): Long {
-        input.use { source ->
-            output.use { sink ->
-                val buffer = ByteArray(8 * 1024)
-                var total = 0L
-                while (true) {
-                    val count = source.read(buffer)
-                    if (count < 0) break
-                    total += count
-                    require(total <= allowedBytes) { "Достигнут лимит передачи 5 МиБ." }
-                    sink.write(buffer, 0, count)
-                }
-                sink.flush()
-                return total
-            }
+        require(allowedBytes >= 0L) { "Достигнут лимит передачи 5 МиБ." }
+        val buffer = ByteArray(8 * 1024)
+        var total = 0L
+        while (true) {
+            val count = input.read(buffer)
+            if (count < 0) break
+            if (count == 0) continue
+            total += count
+            require(total <= allowedBytes) { "Достигнут лимит передачи 5 МиБ." }
+            output.write(buffer, 0, count)
         }
+        output.flush()
+        return total
     }
+
+
+private class SafExportDirectory(
+    private val context: Context,
+    private val directory: DocumentFile
+) : WorkspaceExportDirectory {
+    override fun findFile(name: String): WorkspaceExportDocument? =
+        directory.findFile(name)?.let { SafExportDocument(context, it) }
+
+    override fun createFile(mimeType: String, name: String): WorkspaceExportDocument? =
+        directory.createFile(mimeType, name)?.let { SafExportDocument(context, it) }
+}
+
+private class SafExportDocument(
+    private val context: Context,
+    private val document: DocumentFile
+) : WorkspaceExportDocument {
+    override val isFile: Boolean get() = document.isFile
+    override val isDirectory: Boolean get() = document.isDirectory
+
+    override fun delete(): Boolean = document.delete()
+
+    override fun renameTo(displayName: String): Boolean = document.renameTo(displayName)
+
+    override fun openOutputStream(): OutputStream? =
+        context.contentResolver.openOutputStream(document.uri, "wt")
+}
 
     companion object {
         private const val MAX_FILES = 200
         private const val MAX_FILE_BYTES = 512 * 1024L
         private const val MAX_TOTAL_BYTES = 5 * 1024 * 1024L
+        private const val MAX_TRANSFER_WARNINGS = 5
     }
 }
