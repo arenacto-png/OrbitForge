@@ -42,26 +42,26 @@ internal object WorkspaceExportTransaction {
         if (existing != null && !existing.isFile) {
             return WorkspaceExportOutcome(
                 copied = false,
-                warning = "The destination name is not a regular file; the export was skipped."
+                warning = "Имя назначения занято объектом, который не является обычным файлом; экспорт пропущен."
             )
         }
 
         val temporaryName = uniqueName(parent, ".orbitforge-export-")
-            ?: return WorkspaceExportOutcome(false, warning = "Could not reserve a temporary export name.")
+            ?: return WorkspaceExportOutcome(false, warning = "Не удалось зарезервировать временное имя экспорта.")
         val temporary = parent.createFile(mimeType, temporaryName)
-            ?: return WorkspaceExportOutcome(false, warning = "Could not create a temporary export document.")
+            ?: return WorkspaceExportOutcome(false, warning = "Не удалось создать временный документ экспорта.")
 
         val bytes = try {
-            val output = temporary.openOutputStream() ?: throw IOException("Could not open temporary export.")
+            val output = temporary.openOutputStream() ?: throw IOException("Не удалось открыть временный документ экспорта.")
             output.use { writeContent(it) }
         } catch (_: Exception) {
             val removed = runCatching { temporary.delete() }.getOrDefault(false)
             return WorkspaceExportOutcome(
                 copied = false,
                 warning = if (removed) {
-                    "The staged export failed; the existing destination was left untouched."
+                    "Не удалось подготовить экспорт; существующий файл не изменён."
                 } else {
-                    "The staged export failed; a temporary document may remain. Existing content was left untouched."
+                    "Не удалось подготовить экспорт; временный документ может остаться. Существующий файл не изменён."
                 }
             )
         }
@@ -73,9 +73,9 @@ internal object WorkspaceExportTransaction {
             return WorkspaceExportOutcome(
                 copied = false,
                 warning = if (removed) {
-                    "The destination provider does not support safe rename; the file was skipped."
+                    "Провайдер папки не поддерживает безопасное переименование; файл пропущен."
                 } else {
-                    "Safe rename is unsupported; a temporary document may remain."
+                    "Безопасное переименование не поддерживается; временный документ может остаться."
                 }
             )
         }
@@ -83,13 +83,13 @@ internal object WorkspaceExportTransaction {
         val backupName = uniqueName(parent, ".orbitforge-backup-")
         if (backupName == null) {
             runCatching { temporary.delete() }
-            return WorkspaceExportOutcome(false, warning = "Could not reserve a backup name; existing content was preserved.")
+            return WorkspaceExportOutcome(false, warning = "Не удалось зарезервировать имя резервной копии; существующий файл сохранён.")
         }
 
         val backupCreated = runCatching { existing.renameTo(backupName) }.getOrDefault(false)
         if (!backupCreated) {
             runCatching { temporary.delete() }
-            return WorkspaceExportOutcome(false, warning = "Could not stage the previous destination; it was left untouched.")
+            return WorkspaceExportOutcome(false, warning = "Не удалось переместить прежний файл в резервную копию; он не изменён.")
         }
 
         val promoted = runCatching { temporary.renameTo(fileName) }.getOrDefault(false)
@@ -101,7 +101,7 @@ internal object WorkspaceExportTransaction {
                 bytes = bytes,
                 replacedExisting = true,
                 warning = if (backupRemoved) null else {
-                    "The new file was exported, but the previous version remains as a backup document."
+                    "Новый файл экспортирован, но предыдущая версия осталась резервной копией."
                 }
             )
         }
@@ -113,11 +113,11 @@ internal object WorkspaceExportTransaction {
             copied = false,
             warning = when {
                 restored && temporaryRemoved ->
-                    "Replacement failed; the previous destination was restored."
+                    "Замена не удалась; прежний файл восстановлен."
                 restored ->
-                    "The previous destination was restored; a temporary export document may remain."
+                    "Прежний файл восстановлен; временный документ экспорта может остаться."
                 else ->
-                    "Replacement failed; the previous destination is preserved under backup name " + backupName + "."
+                    "Замена не удалась; прежний файл сохранён под резервным именем " + backupName + "."
             }
         )
     }

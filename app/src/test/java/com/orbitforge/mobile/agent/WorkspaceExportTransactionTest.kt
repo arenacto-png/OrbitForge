@@ -61,7 +61,7 @@ class WorkspaceExportTransactionTest {
         assertFalse(result.copied)
         assertEquals("original", directory.text("notes.txt"))
         assertEquals(setOf("notes.txt"), directory.entries.keys)
-        assertTrue(result.warning.orEmpty().contains("restored"))
+        assertTrue(result.warning.orEmpty().contains("восстановлен"))
     }
 
     @Test
