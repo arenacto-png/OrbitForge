@@ -83,6 +83,23 @@ class WorkspaceExportTransactionTest {
     }
 
     @Test
+    fun missingBackupLookupIsReportedConservatively() {
+        val directory = FakeDirectory()
+        directory.put("notes.txt", "original")
+        directory.hideBackupFromFind = true
+
+        val result = WorkspaceExportTransaction.write(directory, "notes.txt", "text/plain") { output ->
+            output.write("new".toByteArray(Charsets.UTF_8))
+            3L
+        }
+
+        assertTrue(result.copied)
+        assertNotNull(result.warning)
+        assertTrue(result.warning.orEmpty().contains("резервной копии"))
+        assertTrue(directory.entries.keys.any { it.startsWith(".orbitforge-backup-") })
+    }
+
+    @Test
     fun newFileIsOnlyPublishedAfterStagingCompletes() {
         val directory = FakeDirectory()
 
@@ -114,8 +131,10 @@ class WorkspaceExportTransactionTest {
     private class FakeDirectory : WorkspaceExportDirectory {
         val entries = linkedMapOf<String, FakeDocument>()
         var renameAllowed: (String, String) -> Boolean = { _, _ -> true }
+        var hideBackupFromFind: Boolean = false
 
-        override fun findFile(name: String): WorkspaceExportDocument? = entries[name]
+        override fun findFile(name: String): WorkspaceExportDocument? =
+            if (hideBackupFromFind && name.startsWith(".orbitforge-backup-")) null else entries[name]
 
         override fun createFile(mimeType: String, name: String): WorkspaceExportDocument? {
             if (entries.containsKey(name)) return null

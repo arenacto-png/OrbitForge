@@ -95,13 +95,13 @@ internal object WorkspaceExportTransaction {
         val promoted = runCatching { temporary.renameTo(fileName) }.getOrDefault(false)
         if (promoted) {
             val backup = parent.findFile(backupName)
-            val backupRemoved = backup?.let { runCatching { it.delete() }.getOrDefault(false) } ?: true
+            val backupRemoved = backup?.let { runCatching { it.delete() }.getOrDefault(false) } == true
             return WorkspaceExportOutcome(
                 copied = true,
                 bytes = bytes,
                 replacedExisting = true,
                 warning = if (backupRemoved) null else {
-                    "Новый файл экспортирован, но предыдущая версия осталась резервной копией."
+                    "Новый файл экспортирован, но удаление резервной копии не подтверждено; проверь папку назначения."
                 }
             )
         }
