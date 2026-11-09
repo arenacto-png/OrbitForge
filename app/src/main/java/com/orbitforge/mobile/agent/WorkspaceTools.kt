@@ -30,6 +30,10 @@ class WorkspaceTools(context: Context) {
             }
     }
 
+    /** Agent-facing listing that omits sensitive paths and canonical aliases to sensitive/outside targets. */
+    fun listFilesForAgent(relativePath: String = ""): List<WorkspaceEntry> =
+        WorkspaceAgentFileListing.list(root, resolve(relativePath))
+
     fun readFile(relativePath: String): String = readFile(resolve(relativePath))
 
     private fun readFile(file: File): String {

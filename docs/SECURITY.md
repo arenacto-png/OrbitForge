@@ -26,7 +26,7 @@
 - Workspace paths are canonicalized and checked against the workspace root to block ordinary traversal and symlink escapes.
 - The workspace terminal uses a stateful tokenizer rather than a system shell. It rejects unmatched quotes, multiline input, unsupported backslash escapes, and shell-control operators outside quoted arguments; quoted operator characters are treated as data.
 
-- Agent file-read/search/agent-write tools reject common secret files such as `.env`, `local.properties`, keystores, PEM/P12 files, and SSH key paths. User-initiated editor access remains separate. Terminal `grep` must use the agent-safe reader (not the editor's unrestricted reader), rejects blank needles, and caps output at 100 matches/20,000 characters so it cannot bypass the read policy or flood model context.
+- Agent file-read/search/agent-write tools reject common secret files such as `.env`, `local.properties`, keystores, PEM/P12 files, and SSH key paths. User-initiated editor access remains separate. Agent `list_files` and terminal `ls`/`find` omit sensitive names and canonical aliases to sensitive or out-of-workspace targets; `find` is bounded by scan, result, and output limits. Terminal `grep` must use the agent-safe reader (not the editor's unrestricted reader), rejects blank needles, and caps output at 100 matches/20,000 characters so it cannot bypass the read policy or flood model context.
 
 
 ## GitHub workspace commit safety
