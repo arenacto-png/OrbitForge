@@ -1,5 +1,6 @@
 package com.orbitforge.mobile.github
 
+import com.orbitforge.mobile.agent.WorkspaceSensitivePathPolicy
 import com.orbitforge.mobile.diagnostics.DiagnosticLog
 import com.orbitforge.mobile.network.BoundedResponseBodyReader
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -421,7 +422,8 @@ class GitHubRepositoryClient {
         val segments = lower.split('/')
         val blockedDirectories = setOf(".git", ".gradle", "build", ".idea", ".ssh", ".cxx", "node_modules", ".venv", "__pycache__", "target", "dist")
         val blockedExtensions = setOf(".apk", ".aab", ".jks", ".keystore", ".p12", ".pfx", ".pem", ".key", ".crt", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf", ".zip", ".jar", ".class", ".dex", ".so", ".mp4", ".mp3", ".ttf", ".otf", ".woff", ".woff2", ".db")
-        return segments.any { it in blockedDirectories } ||
+        return WorkspaceSensitivePathPolicy.isSensitive(normalized) ||
+            segments.any { it in blockedDirectories } ||
             name in setOf("local.properties", "secrets.properties", "credentials.json", "service-account.json", "id_rsa", "id_ed25519") ||
             name.startsWith(".env") || blockedExtensions.any { name.endsWith(it) }
     }

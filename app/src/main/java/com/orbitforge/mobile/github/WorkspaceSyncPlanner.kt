@@ -1,6 +1,7 @@
 package com.orbitforge.mobile.github
 
 import com.orbitforge.mobile.agent.WorkspaceDiff
+import com.orbitforge.mobile.agent.WorkspaceSensitivePathPolicy
 import java.security.MessageDigest
 
 enum class WorkspaceSyncChangeKind { ADDED, MODIFIED }
@@ -109,6 +110,9 @@ internal object WorkspaceSyncPlanner {
 
         for (candidate in candidates.sortedBy { it.path }) {
             val path = validateRelativePath(candidate.path)
+            require(!WorkspaceSensitivePathPolicy.isSensitive(path)) {
+                "Синхронизация чувствительного пути запрещена: " + path
+            }
             require(seen.add(path)) { "Путь файла повторяется в плане синхронизации: " + path }
             require(GitBlobHash.sha1(candidate.content) == candidate.blobSha) {
                 "Содержимое файла изменилось до построения плана: " + path

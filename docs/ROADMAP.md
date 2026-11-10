@@ -41,6 +41,7 @@
 - [x] Local Git status/diff/commit support (app-private root, bounded reviewed diff, commit only reviewed paths; no remote push)
 - [x] Reject Git pathspec metacharacters in reviewed local commit paths before staging
 - [x] GitHub workspace sync preview with added/modified/unchanged classification and stale-plan checks (remote GitHub sync; not local Git)
+- [x] Apply the shared sensitive-path policy to local Git and GitHub workspace sync
 
 ## Milestone 4 — Runtime and extensibility
 - [x] Limited app-private workspace terminal with command allowlist

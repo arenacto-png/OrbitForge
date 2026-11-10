@@ -80,6 +80,31 @@ class WorkspaceSyncPlannerTest {
     }
 
     @Test
+    fun rejectsSensitiveCredentialPathsEvenWhenPassedDirectlyToPlanner() {
+        val sensitivePaths = listOf(
+            ".aws/credentials",
+            ".kube/config",
+            ".docker/config.json",
+            ".netrc",
+            "service-account-prod.json",
+            "infra/terraform.tfstate"
+        )
+        sensitivePaths.forEach { path ->
+            val content = "ordinary-looking text"
+            try {
+                WorkspaceSyncPlanner.create(
+                    "owner/repo", "main", head, tree,
+                    listOf(WorkspaceSyncCandidate(path, content, GitBlobHash.sha1(content))),
+                    emptyMap(), emptyMap(), emptyMap(), emptySet(), 0
+                )
+                fail("Sensitive path must be rejected: $path")
+            } catch (_: IllegalArgumentException) {
+                // Expected.
+            }
+        }
+    }
+
+    @Test
     fun requiresRemoteContentForModifiedFile() {
         val content = "new"
         val oldSha = GitBlobHash.sha1("old")
