@@ -18,7 +18,9 @@ internal object WorkspaceSensitivePathPolicy {
             "service-account.json", "id_rsa", "id_ed25519", "id_ecdsa", "id_dsa",
             ".netrc", ".npmrc", ".pypirc", ".git-credentials"
         )
-        return name.startsWith(".env") ||
+        // Treat .env-like path segments as sensitive too, not only a final file name:
+        // otherwise a directory such as .env/ could expose descendants to agent tools.
+        return segments.any { it.startsWith(".env") } ||
             name in sensitiveNames ||
             (name.startsWith("service-account") && name.endsWith(".json")) ||
             (name.startsWith("firebase-adminsdk") && name.endsWith(".json")) ||
