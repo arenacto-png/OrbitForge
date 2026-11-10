@@ -1,5 +1,6 @@
 package com.orbitforge.mobile.github
 
+import com.orbitforge.mobile.agent.WorkspaceSensitivePathPolicy
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.dircache.DirCache
@@ -513,16 +514,8 @@ class LocalGitRepository {
         }
     }
 
-    private fun isSensitivePath(path: String): Boolean {
-        val normalized = path.replace('\\', '/').lowercase()
-        val name = normalized.substringAfterLast('/')
-        return name.startsWith(".env") || name in setOf(
-            "local.properties", "secrets.properties", "credentials.json", "id_rsa", "id_ed25519",
-            ".netrc", ".npmrc", ".git-credentials"
-        ) || name.endsWith(".jks") || name.endsWith(".keystore") || name.endsWith(".p12") ||
-            name.endsWith(".pfx") || name.endsWith(".pem") || name.endsWith(".key") ||
-            normalized.split('/').any { it == ".ssh" || it == ".aws" }
-    }
+    private fun isSensitivePath(path: String): Boolean =
+        WorkspaceSensitivePathPolicy.isSensitive(path)
 
     private fun writeUtf8(output: ByteArrayOutputStream, value: String) {
         output.write(value.toByteArray(Charsets.UTF_8))

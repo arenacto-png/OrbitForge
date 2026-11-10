@@ -11,11 +11,23 @@ internal object WorkspaceSensitivePathPolicy {
     fun isSensitive(relativePath: String): Boolean {
         val normalized = relativePath.replace('\\', '/').lowercase()
         val name = normalized.substringAfterLast('/')
-        return name.startsWith(".env") || name in setOf(
-            "local.properties", "secrets.properties", "credentials.json", "id_rsa", "id_ed25519"
-        ) || name.endsWith(".jks") || name.endsWith(".keystore") || name.endsWith(".p12") ||
+        val segments = normalized.split('/')
+        val sensitiveDirectories = setOf(".ssh", ".aws", ".azure", ".gcloud", ".kube")
+        val sensitiveNames = setOf(
+            "local.properties", "secrets.properties", "credentials.json", "google-credentials.json",
+            "service-account.json", "id_rsa", "id_ed25519", "id_ecdsa", "id_dsa",
+            ".netrc", ".npmrc", ".pypirc", ".git-credentials"
+        )
+        return name.startsWith(".env") ||
+            name in sensitiveNames ||
+            (name.startsWith("service-account") && name.endsWith(".json")) ||
+            (name.startsWith("firebase-adminsdk") && name.endsWith(".json")) ||
+            name.endsWith(".jks") || name.endsWith(".keystore") || name.endsWith(".p12") ||
             name.endsWith(".pfx") || name.endsWith(".pem") || name.endsWith(".key") ||
-            normalized.split('/').any { it == ".ssh" }
+            name.endsWith(".tfstate") || name.endsWith(".tfstate.backup") ||
+            name.endsWith(".tfvars") || name.endsWith(".tfvars.json") ||
+            segments.any { it in sensitiveDirectories } ||
+            (name == "config.json" && segments.dropLast(1).lastOrNull() == ".docker")
     }
 
     /** Returns true for sensitive canonical targets and fails closed on canonicalization errors/outside paths. */

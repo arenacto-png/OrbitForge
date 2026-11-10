@@ -9,9 +9,34 @@ import org.junit.Test
 class WorkspaceSensitivePathPolicyTest {
     @Test
     fun directSensitivePathsAreRejectedAndOrdinaryPathsAreAllowed() {
-        assertTrue(WorkspaceSensitivePathPolicy.isSensitive(".env"))
-        assertTrue(WorkspaceSensitivePathPolicy.isSensitive("config/local.properties"))
+        val sensitivePaths = listOf(
+            ".env",
+            ".env.production",
+            "config/local.properties",
+            "secrets.properties",
+            "service-account-prod.json",
+            "firebase-adminsdk-key.json",
+            ".netrc",
+            ".npmrc",
+            ".pypirc",
+            ".git-credentials",
+            "keys/id_ecdsa",
+            "certs/private.key",
+            "release/upload.jks",
+            ".aws/credentials",
+            ".azure/accessTokens.json",
+            ".gcloud/credentials.db",
+            ".kube/config",
+            ".docker/config.json",
+            "infra/terraform.tfstate",
+            "infra/prod.tfvars"
+        )
+
+        sensitivePaths.forEach { path ->
+            assertTrue("Expected sensitive path to be rejected: $path", WorkspaceSensitivePathPolicy.isSensitive(path))
+        }
         assertFalse(WorkspaceSensitivePathPolicy.isSensitive("src/main/App.kt"))
+        assertFalse(WorkspaceSensitivePathPolicy.isSensitive("docs/README.md"))
     }
 
     @Test

@@ -124,6 +124,21 @@ class LocalGitRepositoryTest {
     }
 
     @Test
+    fun refusesAdditionalCredentialDirectoriesAndServiceAccountFiles() {
+        val root = initializedWorkspace()
+        val awsCredentials = File(root, ".aws/credentials").apply {
+            parentFile?.mkdirs()
+            writeText("[default]\naws_access_key_id = placeholder\n", Charsets.UTF_8)
+        }
+        assertThrows(IllegalArgumentException::class.java) { localGit.prepareCommit(root) }
+        assertTrue(awsCredentials.delete())
+        File(root, ".aws").delete()
+
+        File(root, "service-account-prod.json").writeText("{\"private_key\":\"placeholder\"}", Charsets.UTF_8)
+        assertThrows(IllegalArgumentException::class.java) { localGit.prepareCommit(root) }
+    }
+
+    @Test
     fun refusesBinaryAndOversizedChangedFiles() {
         val root = initializedWorkspace()
         File(root, "binary.dat").writeBytes(byteArrayOf(0, 1, 2, 3))
