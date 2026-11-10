@@ -262,7 +262,7 @@ class AgentEngine(context: Context) {
         return try {
             when (name) {
                 "list_files" -> {
-                    val entries = workspace.listFiles(args.optString("path", ""))
+                    val entries = workspace.listFilesForAgent(args.optString("path", ""))
                     if (entries.isEmpty()) "Папка пуста." else entries.joinToString("\n") {
                         "${if (it.isDirectory) "DIR " else "FILE"} ${it.path}${if (it.isDirectory) "/" else " (${it.sizeBytes} bytes)"}"
                     }
@@ -289,7 +289,7 @@ class AgentEngine(context: Context) {
                     require(path.isNotBlank()) { "Путь не может быть пустым." }
                     val target = workspace.validatePath(path)
                     val existed = target.exists()
-                    val previousContent = if (existed) workspace.readFile(path) else ""
+                    val previousContent = if (existed) workspace.readFileForAgentWritePreview(path) else ""
                     val diffPreview = WorkspaceDiff.preview(previousContent, content, isNewFile = !existed)
                     onStatus("Ожидается подтверждение записи: $path")
                     if (!approveWrite(WriteApproval(path, content, diffPreview))) {
@@ -456,7 +456,7 @@ class AgentEngine(context: Context) {
     private fun toolDefinitions(externalTools: List<McpTool> = emptyList()): JSONArray = JSONArray().apply {
         put(tool(
             "list_files",
-            "List files and folders inside the OrbitForge workspace. Optional path is a relative directory.",
+            "List files and folders safe for agent access inside the OrbitForge workspace; sensitive paths and aliases are omitted. Optional path is a relative directory.",
             JSONObject().put("type", "object")
                 .put("properties", JSONObject().put("path", stringSchema("Relative folder path; empty means workspace root.")))
                 .put("required", JSONArray())
