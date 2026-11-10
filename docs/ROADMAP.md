@@ -48,6 +48,7 @@
 - [x] Limited app-private workspace terminal with command allowlist
 - [x] Stateful terminal argument parser with quote validation and shell-control rejection tests
 - [x] Enforce agent-safe file-read policy and bounded output for terminal `grep`
+- [x] Enforce the shared sensitive-path policy for terminal `mkdir`/`touch`, including canonical aliases
 - [ ] Optional Termux/remote runtime adapter
 - [x] Skills (`SKILL.md`) loader with editable starter skills and size limits
 - [x] Single remote MCP endpoint with tool discovery/calls, approval before every external tool call, and shared 2 MiB HTTP response bounds for MCP and non-streaming agent-provider calls
