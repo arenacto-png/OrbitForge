@@ -51,16 +51,20 @@ class WorkspaceTerminal(context: Context) {
             }
             "mkdir" -> {
                 require(params.size == 1) { "Использование: mkdir <путь>" }
-                val directory = tools.validatePath(params[0])
-                require(directory.mkdirs() || directory.isDirectory) { "Не удалось создать папку." }
+                val directory = WorkspaceTerminalMutationPolicy.createDirectory(
+                    root,
+                    params[0],
+                    tools.validatePath(params[0])
+                )
                 "Создана папка: ${params[0]}"
             }
             "touch" -> {
                 require(params.size == 1) { "Использование: touch <путь>" }
-                val file = tools.validatePath(params[0])
-                file.parentFile?.mkdirs()
-                if (!file.exists()) require(file.createNewFile()) { "Не удалось создать файл." }
-                require(file.isFile) { "Путь существует, но это не файл." }
+                val file = WorkspaceTerminalMutationPolicy.createEmptyFile(
+                    root,
+                    params[0],
+                    tools.validatePath(params[0])
+                )
                 "Файл готов: ${params[0]}"
             }
             "echo" -> params.joinToString(" ")
