@@ -16,6 +16,7 @@
 - [ ] Verify Gradle sync/build in Android Studio
 - [x] GitHub Actions CI workflow for unit tests and debug APK artifact
 - [x] Add Gradle Wrapper 8.11.1 with pinned distribution SHA-256 and use it in CI
+- [x] Keep GitHub Actions on maintained Node 24-compatible action majors
 
 ## Milestone 2 — Agent foundation
 - [x] Unit tests for workspace path traversal and absolute-path rejection
