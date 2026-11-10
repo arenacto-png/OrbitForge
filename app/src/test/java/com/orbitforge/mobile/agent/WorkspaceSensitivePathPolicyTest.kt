@@ -20,6 +20,7 @@ class WorkspaceSensitivePathPolicyTest {
             ".npmrc",
             ".pypirc",
             ".git-credentials",
+            ".git/config",
             "keys/id_ecdsa",
             "certs/private.key",
             "release/upload.jks",

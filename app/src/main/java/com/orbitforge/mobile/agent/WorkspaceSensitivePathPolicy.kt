@@ -12,7 +12,7 @@ internal object WorkspaceSensitivePathPolicy {
         val normalized = relativePath.replace('\\', '/').lowercase()
         val name = normalized.substringAfterLast('/')
         val segments = normalized.split('/')
-        val sensitiveDirectories = setOf(".ssh", ".aws", ".azure", ".gcloud", ".kube")
+        val sensitiveDirectories = setOf(".git", ".ssh", ".aws", ".azure", ".gcloud", ".kube")
         val sensitiveNames = setOf(
             "local.properties", "secrets.properties", "credentials.json", "google-credentials.json",
             "service-account.json", "id_rsa", "id_ed25519", "id_ecdsa", "id_dsa",
