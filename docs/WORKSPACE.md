@@ -2,7 +2,7 @@
 
 Projects can import a folder selected through Android's Storage Access Framework and export the app-private workspace back to that selected folder. Persisted folder access is stored as a URI preference.
 
-Transfers are bounded to 200 files, 512 KiB per file, and 5 MiB total. Common build directories, local configuration, keystores, APK/AAB files, and certificate files are skipped. Import does not overwrite existing private workspace files. Export asks for confirmation and may overwrite matching files in the selected destination.
+Transfers are bounded to 200 files, 512 KiB per file, and 5 MiB total. Common build directories, local configuration, keystores, APK/AAB files, and certificate files are skipped. Import does not overwrite existing private workspace files. Export asks for confirmation and may replace matching files in the selected destination. Each replacement is first written to a temporary document; only after that copy completes is the previous destination moved to a backup name and the new document promoted. If promotion fails, OrbitForge attempts to restore the old document and retains a backup if restoration cannot be confirmed. Providers that do not support the required rename operations fail closed instead of directly truncating the old file.
 
 
 ## File save safety

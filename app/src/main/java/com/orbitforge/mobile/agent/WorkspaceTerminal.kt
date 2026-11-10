@@ -19,7 +19,8 @@ class WorkspaceTerminal(context: Context) {
             "help" -> HELP
             "pwd" -> root.absolutePath
             "ls" -> {
-                val entries = tools.listFiles(params.firstOrNull().orEmpty())
+                require(params.size <= 1) { "Использование: ls [папка]" }
+                val entries = tools.listFilesForAgent(params.firstOrNull().orEmpty())
                 if (entries.isEmpty()) "(папка пуста)" else entries.joinToString("\n") {
                     "${if (it.isDirectory) "DIR " else "FILE"} ${it.path}${if (it.isDirectory) "/" else " (${it.sizeBytes} B)"}"
                 }
@@ -34,11 +35,8 @@ class WorkspaceTerminal(context: Context) {
                 tools.readFileForAgent(params[0]).lineSequence().take(count).joinToString("\n")
             }
             "grep" -> {
-                require(params.size >= 2) { "Использование: grep <текст> <путь>" }
-                val needle = params[0]
-                tools.readFile(params[1]).lineSequence()
-                    .mapIndexedNotNull { index, line -> if (line.contains(needle, ignoreCase = true)) "${index + 1}: $line" else null }
-                    .take(100).joinToString("\n").ifBlank { "Совпадений не найдено." }
+                require(params.size == 2) { "Использование: grep <текст> <путь>" }
+                WorkspaceTerminalGrep.search(params[0], params[1], tools::readFileForAgent)
             }
             "wc" -> {
                 require(params.size == 1) { "Использование: wc <путь>" }
@@ -46,12 +44,10 @@ class WorkspaceTerminal(context: Context) {
                 "Строк: ${content.lineSequence().count()}, символов: ${content.length}, байт UTF-8: ${content.toByteArray(Charsets.UTF_8).size}"
             }
             "find" -> {
+                require(params.size <= 1) { "Использование: find [папка]" }
                 val start = tools.validatePath(params.firstOrNull().orEmpty())
                 require(start.isDirectory) { "Путь не является папкой." }
-                start.walkTopDown().take(201).map { it.relativeTo(root).path.ifBlank { "." } }
-                    .joinToString("\n").let {
-                        if (it.length > MAX_OUTPUT_CHARS) it.take(MAX_OUTPUT_CHARS) + "\n… вывод сокращён …" else it
-                    }
+                WorkspaceTerminalFind.list(root, start)
             }
             "mkdir" -> {
                 require(params.size == 1) { "Использование: mkdir <путь>" }
@@ -80,8 +76,8 @@ class WorkspaceTerminal(context: Context) {
         private val HELP = listOf(
             "Доступные команды OrbitForge (без системного shell):",
             "pwd — путь рабочей папки",
-            "ls [папка] — список файлов",
-            "find [папка] — дерево путей",
+            "ls [папка] — список безопасных для агента файлов",
+            "find [папка] — ограниченное дерево безопасных путей",
             "cat <файл> — прочитать файл",
             "head <файл> [N] — первые N строк",
             "grep <текст> <файл> — поиск текста",

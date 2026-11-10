@@ -1,9 +1,9 @@
 # Build and CI
 
-The `.github/workflows/android.yml` workflow runs on pushes to `main`, pull requests targeting `main`, and manual dispatch. It uses JDK 17 and Gradle 8.11.1, runs JVM unit tests with `gradle test`, builds the debug APK with `gradle assembleDebug`, and uploads the APK plus checksum as the `orbitforge-debug-apk` artifact.
+The `.github/workflows/android.yml` workflow runs on pushes to `main`, pull requests targeting `main`, and manual dispatch. It uses JDK 17 and the repository's Gradle Wrapper (Gradle 8.11.1), runs JVM unit tests with `./gradlew test`, builds the debug APK with `./gradlew assembleDebug`, verifies its signature and SHA-256 checksum with `scripts/verify-apk.sh`, and uploads both files as the `orbitforge-debug-apk` artifact.
 
-After building the debug APK, CI runs `scripts/verify-apk.sh` to verify its Android APK signature with `apksigner` and write a SHA-256 checksum next to the APK; both files are uploaded as the `orbitforge-debug-apk` artifact.
+The Wrapper distribution URL is restricted to the official Gradle service and its SHA-256 is pinned in `gradle/wrapper/gradle-wrapper.properties`. The wrapper JAR is sourced from the official Gradle 8.11.1 tag; `gradle/actions/setup-gradle@v4` validates wrapper JAR checksums automatically before the build.
 
-The current workflow does not run Android instrumentation or emulator UI tests. A successful CI run verifies the configured JVM tests, debug APK build, signature, and checksum, not installation or behavior on a physical device.
+The current workflow does not run Android instrumentation or emulator UI tests. A successful CI run verifies the configured JVM tests, debug APK build, signature, and checksum, not Android Studio sync, installation, or behavior on a physical device.
 
-There is no Gradle wrapper in the repository yet; adding one and verifying Android Studio sync/build remain roadmap items. Do not mark local builds or on-device tests as complete unless they were actually run.
+For a local build, install JDK 17 and Android SDK Platform 35, then run `./gradlew test`, `./gradlew assembleDebug`, and `bash scripts/verify-apk.sh app/build/outputs/apk/debug/app-debug.apk`. Do not mark Android Studio sync or on-device tests as complete unless they were actually run.

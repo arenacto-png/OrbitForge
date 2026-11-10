@@ -18,14 +18,12 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Set up Gradle 8.11.1
+      - name: Set up Gradle (wrapper-pinned)
         uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.11.1'
       - name: Run unit tests
-        run: gradle test
+        run: ./gradlew test
       - name: Build debug APK
-        run: gradle assembleDebug
+        run: ./gradlew assembleDebug
       - name: Verify debug APK signature and SHA-256
         run: bash scripts/verify-apk.sh app/build/outputs/apk/debug/app-debug.apk
       - name: Upload debug APK
