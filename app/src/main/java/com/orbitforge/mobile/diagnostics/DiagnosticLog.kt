@@ -20,7 +20,7 @@ object DiagnosticLog {
         val stamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(Date())
         val line = "$stamp [$level] [$tag] $safe"
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val old = prefs.getString(KEY_LINES, "").orEmpty()
+        val old = sanitizeStoredLines(prefs.getString(KEY_LINES, "").orEmpty())
         val lines = (old.lines().filter { it.isNotBlank() } + line).takeLast(MAX_LINES)
         prefs.edit().putString(KEY_LINES, lines.joinToString("\n")).apply()
     }
@@ -36,11 +36,17 @@ object DiagnosticLog {
         }
     }
 
-    fun read(context: Context): String =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(KEY_LINES, "")
-            .orEmpty()
-            .ifBlank { "Пока нет диагностических записей." }
+    @Synchronized
+    fun read(context: Context): String {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val raw = prefs.getString(KEY_LINES, "").orEmpty()
+        val safe = sanitizeStoredLines(raw)
+        if (safe != raw) prefs.edit().putString(KEY_LINES, safe).apply()
+        return safe.ifBlank { "Пока нет диагностических записей." }
+    }
+
+    internal fun sanitizeStoredLines(input: String): String =
+        input.lineSequence().joinToString("\n") { redact(it) }
 
     fun clear(context: Context) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(KEY_LINES).apply()
