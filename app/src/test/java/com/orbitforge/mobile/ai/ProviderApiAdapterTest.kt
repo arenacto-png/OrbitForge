@@ -136,6 +136,16 @@ class ProviderApiAdapterTest {
     }
 
     @Test
+    fun openAiFinishReasonDoesNotStopBeforeTrailingUsageChunk() {
+        val finish = JSONObject()
+            .put("choices", JSONArray().put(JSONObject().put("finish_reason", "stop")))
+        val usage = JSONObject().put("usage", JSONObject().put("total_tokens", 7))
+
+        assertFalse(ProviderApiAdapter.isStreamFinished(ProviderApiFormat.OPENAI_COMPATIBLE, finish))
+        assertFalse(ProviderApiAdapter.isStreamFinished(ProviderApiFormat.OPENAI_COMPATIBLE, usage))
+    }
+
+    @Test
     fun parsesAnthropicTextDeltaAndRecognizesMessageStop() {
         val delta = JSONObject()
             .put("type", "content_block_delta")
