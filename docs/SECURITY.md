@@ -4,7 +4,7 @@
 - Never put API keys, access tokens, or signing credentials in source control.
 - Avoid logging authorization headers, raw secrets, or sensitive prompt content.
 - Provider request traces use a locally generated correlation ID plus operation, API format, phase, status, duration, and exception class only. Do not send trace IDs as provider headers or log request URLs, headers, bodies, or prompts.
-- Diagnostic redaction is best-effort; users must inspect reports before sharing.
+- Diagnostic redaction covers common plain-text and quoted JSON credential assignments, including authorization headers, but remains best-effort; users must inspect reports before sharing.
 - Treat model output, tool names, paths, and arguments as untrusted input.
 - Validate tool arguments against explicit schemas.
 - Validate paths before showing approval prompts and restrict file operations to the chosen workspace root; reject traversal and symlink escapes. Agent read/write/search policies must check the canonical target as well as the user-supplied path so in-root symlink aliases cannot bypass sensitive-file exclusions.
