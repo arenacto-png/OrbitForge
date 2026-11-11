@@ -50,6 +50,7 @@ object DiagnosticLog {
     fun redact(input: String): String {
         var result = input
         result = AUTHORIZATION_HEADER.replace(result, "$1[REDACTED]")
+        result = COOKIE_HEADER.replace(result, "$1[REDACTED]")
         result = DOUBLE_QUOTED_SECRET_ASSIGNMENT.replace(result, "$1\"[REDACTED]\"")
         result = SINGLE_QUOTED_SECRET_ASSIGNMENT.replace(result, "$1'[REDACTED]'")
         result = UNQUOTED_SECRET_ASSIGNMENT.replace(result, "$1[REDACTED]")
@@ -67,7 +68,10 @@ object DiagnosticLog {
         """(?<![A-Za-z0-9])["']?(?:api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|private[_-]?key|authorization|token|secret|password|cookie)["']?\s*[:=]\s*"""
 
     private val AUTHORIZATION_HEADER =
-        Regex("(?i)(authorization\\s*[:=]\\s*)[^\\r\\n]+")
+        Regex("(?i)((?:proxy-)?authorization\\s*[:=]\\s*)[^\\r\\n]+")
+
+    private val COOKIE_HEADER =
+        Regex("(?i)((?:set-)?cookie\\s*[:=]\\s*)[^\\r\\n]+")
 
     private val DOUBLE_QUOTED_SECRET_ASSIGNMENT =
         Regex("(?i)($SECRET_ASSIGNMENT_KEY)\"(?:\\\\.|[^\"\\\\])*\"")

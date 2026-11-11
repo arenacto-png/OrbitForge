@@ -61,4 +61,13 @@ class DiagnosticLogRedactionTest {
         assertFalse(result.contains("session-cookie-secret"))
     }
 
+    @Test
+    fun redactsEntireCookieHeadersIncludingAttributes() {
+        val result = DiagnosticLog.redact("Set-Cookie: session=cookie-header-secret; Path=/; HttpOnly")
+
+        assertFalse(result.contains("cookie-header-secret"))
+        assertFalse(result.contains("Path=/"))
+        assertTrue(result.contains("[REDACTED]"))
+    }
+
 }
