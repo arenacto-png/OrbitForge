@@ -5,7 +5,7 @@ The first agent tool set is intentionally small:
 - `list_files(path?)`: list entries inside the app-private workspace.
 - `read_file(path)`: read a UTF-8 text file; model context is capped at 40,000 characters.
 - `write_file(path, content)`: write a UTF-8 file up to 10 KiB, only after user approval; larger edits can be made by the user in the editor.
-- `run_command(command)`: execute one command from the limited workspace terminal. Mutating commands such as `mkdir` and `touch` require approval; arbitrary shell commands and shell operators are rejected. A stateful tokenizer validates quotes and rejects multiline input, backslash escapes, and shell-control syntax outside quoted arguments; quoted operator characters are literal data.
+- `run_command(command)`: execute one command from the limited workspace terminal. Mutating commands such as `mkdir` and `touch` require approval and reject sensitive path names or canonical aliases; arbitrary shell commands and shell operators are rejected. A stateful tokenizer validates quotes and rejects multiline input, backslash escapes, and shell-control syntax outside quoted arguments; quoted operator characters are literal data.
 
 The workspace is stored under the app-private `filesDir/orbitforge-workspace` directory. It is not yet an arbitrary user-selected project folder. Paths are canonicalized and constrained to the workspace root to block `..` traversal and symlink escapes.
 
