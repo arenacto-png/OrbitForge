@@ -49,11 +49,11 @@ object DiagnosticLog {
 
     fun redact(input: String): String {
         var result = input
-        result = AUTHORIZATION_HEADER.replace(result, "$1[REDACTED]")
-        result = COOKIE_HEADER.replace(result, "$1[REDACTED]")
         result = DOUBLE_QUOTED_SECRET_ASSIGNMENT.replace(result, "$1\"[REDACTED]\"")
         result = SINGLE_QUOTED_SECRET_ASSIGNMENT.replace(result, "$1'[REDACTED]'")
         result = UNQUOTED_SECRET_ASSIGNMENT.replace(result, "$1[REDACTED]")
+        result = AUTHORIZATION_HEADER.replace(result, "$1[REDACTED]")
+        result = COOKIE_HEADER.replace(result, "$1[REDACTED]")
 
         val patterns = listOf(
             Regex("(?i)(sk-[A-Za-z0-9_-]{8,})") to "[REDACTED_API_KEY]",
