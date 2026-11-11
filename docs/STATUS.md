@@ -4,6 +4,7 @@
 
 - Native Compose UI: agent/chat, projects, text editor, limited terminal, settings, diagnostics.
 - OpenAI-compatible Chat Completions and Anthropic Messages streaming chat, provider-format selection, and an in-app connection test. The Anthropic adapter translates agent tool schemas, tool-use responses, and tool-result history into the shared strict tool-call validation path. Common provider HTTP/network failures map to actionable guidance; error excerpts are bounded and redacted, and usage counters are recorded when returned.
+- Provider diagnostics tests cover HTTP/network guidance, bounded and redacted error details, usage counter aliases/partial merges, malformed telemetry, and stream completion behavior.
 - Local conversation history and separate encrypted API/GitHub/MCP credentials using Android Keystore.
 - Cancelled chat/agent requests replace the pending assistant placeholder with a durable cancellation result; partial chat output is retained with an incomplete-response marker, and the history is persisted.
 - Bounded tool-calling agent with file listing, reading, search, writes with approval, and allowlisted terminal commands. Terminal `grep` uses the same sensitive-path/secret-content checks as other agent reads and bounds its result to 100 matches/20,000 characters. Terminal `mkdir`/`touch` also reject sensitive path names and canonical aliases before mutation. Provider tool-call batches are validated completely before execution; malformed JSON, duplicate call IDs, and unknown tools fail closed. The agent is limited to eight model rounds and eight tool calls per round, and does not execute tools returned in its final permitted round.
@@ -20,7 +21,7 @@
 - Diagnostic report copy/share with API/GitHub/MCP token redaction and compact crash traces.
 - Provider chat and agent HTTP requests emit local correlation IDs, operation/API-format, HTTP status, duration, and bounded error-class metadata. Correlation IDs are not sent to providers; request URLs, headers, bodies, and prompts are not included in trace events.
 - GitHub Actions workflow on main runs JVM unit tests and builds/uploads a debug APK through the checked-in Gradle Wrapper (8.11.1, distribution SHA-256 pinned); setup-gradle v6 validates the wrapper JAR and uses the basic open-source cache provider. CI actions use Node 24-compatible maintained majors (checkout v7, setup-java v6, setup-gradle v6, upload-artifact v7). Android emulator UI smoke tests are not part of the current main workflow.
-- Unit tests for provider URL rules, diagnostic redaction, workspace path traversal and symlink escapes, strict agent tool-call parsing and round limits, safe workspace-search parsing, syntax highlighting spans/large-file fallback, bounded diff previews, local Git init/status/diff/commit safety including Git pathspec validation, provider error/usage parsing, and strict terminal command parsing.
+- Unit tests for provider URL rules, diagnostic redaction, workspace path traversal and symlink escapes, strict agent tool-call parsing and round limits, safe workspace-search parsing, syntax highlighting spans/large-file fallback, bounded diff previews, local Git init/status/diff/commit safety including Git pathspec validation, and strict terminal command parsing.
 
 ## Still requires live verification
 
