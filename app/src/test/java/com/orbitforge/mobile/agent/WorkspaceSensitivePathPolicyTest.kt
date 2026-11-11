@@ -12,6 +12,8 @@ class WorkspaceSensitivePathPolicyTest {
         val sensitivePaths = listOf(
             ".env",
             ".env.production",
+            ".env/config",
+            ".env.production/private.txt",
             "config/local.properties",
             "secrets.properties",
             "service-account-prod.json",
