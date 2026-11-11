@@ -1,5 +1,6 @@
 package com.orbitforge.mobile.diagnostics
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -68,6 +69,19 @@ class DiagnosticLogRedactionTest {
         assertFalse(result.contains("cookie-header-secret"))
         assertFalse(result.contains("Path=/"))
         assertTrue(result.contains("[REDACTED]"))
+    }
+
+    @Test
+    fun sanitizesLegacyPersistedLinesBeforeTheyAreReadOrRetained() {
+        val legacy = """[ERROR] {"access_token":"legacy-access-secret"}
+[ERROR] Set-Cookie: session=legacy-cookie-secret; Path=/; HttpOnly"""
+        val result = DiagnosticLog.sanitizeStoredLines(legacy)
+
+        assertFalse(result.contains("legacy-access-secret"))
+        assertFalse(result.contains("legacy-cookie-secret"))
+        assertFalse(result.contains("Path=/"))
+        assertTrue(result.contains("[REDACTED]"))
+        assertEquals(2, result.lines().size)
     }
 
 }
