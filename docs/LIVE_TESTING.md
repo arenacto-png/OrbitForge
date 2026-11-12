@@ -1,6 +1,6 @@
 # Live test checklist
 
-GitHub Actions runs the JVM unit tests and builds the debug APK. Android Studio sync, installation, and live behavior still require verification outside CI.
+GitHub Actions runs the JVM unit tests, builds the debug APK, verifies its signature, and writes a SHA-256 checksum. Android Studio sync, installation, and live behavior still require verification outside CI.
 
 ## 1. Build and verify
 
@@ -9,7 +9,7 @@ GitHub Actions runs the JVM unit tests and builds the debug APK. Android Studio 
 3. Build the debug APK with `./gradlew assembleDebug`.
 4. If opening in Android Studio, import the repository root and complete Gradle sync.
 5. Locate the APK at `app/build/outputs/apk/debug/app-debug.apk`.
-6. Before installation, verify the APK signature with Android SDK Build Tools: `apksigner verify --verbose --print-certs app-debug.apk`.
+6. From the extracted artifact directory, verify the checksum with `sha256sum -c app-debug.apk.sha256`, then verify the APK certificate with `apksigner verify --verbose --print-certs app-debug.apk`. Install only after both checks succeed.
 
 ## 2. Smoke-test the app
 
