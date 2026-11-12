@@ -51,7 +51,7 @@
 - [x] Enforce the shared sensitive-path policy for terminal `mkdir`/`touch`, including canonical aliases
 - [ ] Optional Termux/remote runtime adapter
 - [x] Skills (`SKILL.md`) loader with editable starter skills and size limits
-- [x] Single remote MCP endpoint with tool discovery/calls, approval before every external tool call, and shared 2 MiB HTTP response bounds for MCP and non-streaming agent-provider calls
+- [x] Single remote MCP endpoint with tool discovery/calls, approval before every external tool call, shared 2 MiB HTTP response bounds, and automatic redirects disabled
 - [ ] Optional remote executor for heavy builds
 - [x] CI workflow for unit tests and debug APK artifact
 - [ ] Release signing guidance and APK verification
