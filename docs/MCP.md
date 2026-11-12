@@ -4,4 +4,6 @@ OrbitForge supports a single configured remote MCP endpoint over HTTPS using Str
 
 Every external MCP tool call requires explicit user approval. Tool results are treated as untrusted data and bounded to 20,000 characters. Local file tools still enforce the app-private workspace boundary.
 
+Automatic HTTP redirects are disabled for MCP requests, including HTTPS-to-HTTP redirects. This prevents a server-controlled redirect from silently changing the approved endpoint or downgrading transport for a request carrying the MCP bearer token. Configure the final HTTPS endpoint directly; a 3xx response is reported as an endpoint error instead of being followed.
+
 Limitations: this is remote HTTP MCP only, not stdio/local-server support. Some servers require OAuth, SSE behavior, protocol versions, or authentication schemes not covered by this initial adapter. Verify against the specific server before relying on it.
