@@ -11,7 +11,6 @@ import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
-import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resumeWithException
 
 data class McpTool(
@@ -22,11 +21,7 @@ data class McpTool(
 )
 
 class McpClient {
-    private val http = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(45, TimeUnit.SECONDS)
-        .callTimeout(50, TimeUnit.SECONDS)
-        .build()
+    private val http = McpHttpClientPolicy.createClient()
 
     suspend fun connect(endpoint: String, bearerToken: String = ""): McpSession {
         val normalizedEndpoint = endpoint.trim()
@@ -115,6 +110,12 @@ class McpSession internal constructor(
         sessionId?.let { builder.header("Mcp-Session-Id", it) }
         val result = execute(builder.build())
         result.sessionId?.let { sessionId = it }
+        if (result.code in 300..399) {
+            throw IOException(
+                "MCP endpoint returned HTTP ${result.code}; automatic redirects are disabled. " +
+                    "Configure the final HTTPS endpoint directly."
+            )
+        }
         if (result.code !in 200..299 && !(notification && result.code == 202)) {
             throw IOException("MCP HTTP ${result.code}: ${result.body.take(300)}")
         }
