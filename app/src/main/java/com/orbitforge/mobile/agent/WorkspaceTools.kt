@@ -126,7 +126,7 @@ class WorkspaceTools(context: Context) {
         return if (matches.isEmpty()) "Совпадений не найдено (проверено файлов: $inspected)." else matches.joinToString("\n")
     }
 
-    private fun looksLikeSecretContent(content: String): Boolean {
+    internal fun looksLikeSecretContent(content: String): Boolean {
         val patterns = listOf(
             Regex("(?i)(api[_-]?key|access[_-]?token|github[_-]?token|client[_-]?secret|password)\\s*[:=]\\s*[\"']?[A-Za-z0-9_./+=-]{20,}"),
             Regex("(?i)(sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})"),
@@ -135,7 +135,7 @@ class WorkspaceTools(context: Context) {
         return patterns.any { it.containsMatchIn(content) }
     }
 
-    private fun isSensitivePath(relativePath: String): Boolean =
+    internal fun isSensitivePath(relativePath: String): Boolean =
         WorkspaceSensitivePathPolicy.isSensitive(relativePath)
 
     fun rootPath(): String = root.absolutePath

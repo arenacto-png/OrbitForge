@@ -25,7 +25,7 @@
 - [x] Filter agent-facing file listings and terminal traversal for sensitive paths and canonical symlink aliases
 - [x] Validate existing file content before exposing agent write-approval diffs
 - [x] Bounded diff preview before agent writes; approve/reject supported
-- [ ] Support structured multi-file patch application
+- [x] Support structured multi-file patch application with exact-match validation, one combined approval, bounded diffs, and guarded best-effort rollback
 - [x] Add conversation/task cancellation and recovery tests (persist cancelled result and preserve partial chat output)
 - [x] Add provider-specific request/response adapters for OpenAI-compatible Chat Completions and Anthropic Messages (streaming chat and agent tool calls)
 - [x] Add local provider request correlation IDs and duration/status events without logging prompts or credentials
