@@ -7,7 +7,6 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
@@ -29,7 +28,7 @@ data class GitHubRepository(
 )
 
 class GitHubRepositoryClient {
-    private val http = OkHttpClient.Builder()
+    private val http = GitHubHttpClientPolicy.newBuilder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .callTimeout(35, TimeUnit.SECONDS)
@@ -462,6 +461,12 @@ class GitHubRepositoryClient {
                 override fun onResponse(call: Call, response: Response) {
                     response.use {
                         try {
+                            if (GitHubHttpClientPolicy.isRedirectStatus(response.code)) {
+                                if (continuation.isActive) {
+                                    continuation.resumeWithException(GitHubHttpClientPolicy.redirectFailure(response.code))
+                                }
+                                return@use
+                            }
                             val body = response.body?.byteStream()?.use { BoundedResponseBodyReader.read(it, MAX_GITHUB_RESPONSE_BYTES) }.orEmpty()
                             if (!response.isSuccessful) {
                                 val safeBody = DiagnosticLog.redact(body).take(300)
