@@ -183,7 +183,7 @@ class AgentEngine(context: Context) {
                 override fun onResponse(call: Call, response: Response) {
                     response.use {
                         try {
-                            if (response.code in 300..399) {
+                            if (ProviderHttpClientPolicy.isRedirectStatus(response.code)) {
                                 DiagnosticLog.add(
                                     appContext,
                                     "WARN",
