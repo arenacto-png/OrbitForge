@@ -18,7 +18,7 @@ class ProviderHttpClientPolicyTest {
         val message = ProviderHttpClientPolicy.redirectFailure(307).message.orEmpty()
 
         assertTrue(message.contains("307"))
-        assertTrue(message.contains("перенаправления"))
+        assertTrue(message.contains("перенаправлением"))
         assertTrue(message.contains("конечный URL API"))
     }
 
