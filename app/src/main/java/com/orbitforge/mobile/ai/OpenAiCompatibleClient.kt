@@ -75,7 +75,7 @@ class OpenAiCompatibleClient(private val context: Context) {
                         )
                     )
                     if (!response.isSuccessful) {
-                        if (response.code in 300..399) {
+                        if (ProviderHttpClientPolicy.isRedirectStatus(response.code)) {
                             throw ProviderHttpClientPolicy.redirectFailure(response.code)
                         }
                         val body = try {
