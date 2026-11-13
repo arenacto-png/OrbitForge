@@ -24,11 +24,21 @@ class ProviderHttpClientPolicyTest {
 
     @Test
     fun rejectsNonRedirectStatusCodesInRedirectFailureHelper() {
-        try {
-            ProviderHttpClientPolicy.redirectFailure(200)
-            throw AssertionError("Expected a non-redirect status to be rejected")
-        } catch (_: IllegalArgumentException) {
-            // Expected.
+        listOf(200, 304, 404).forEach { statusCode ->
+            try {
+                ProviderHttpClientPolicy.redirectFailure(statusCode)
+                throw AssertionError("Expected status $statusCode to be rejected")
+            } catch (_: IllegalArgumentException) {
+                // Expected.
+            }
+            assertFalse(ProviderHttpClientPolicy.isRedirectStatus(statusCode))
+        }
+    }
+
+    @Test
+    fun recognizesRedirectStatusCodesHandledByOkHttp() {
+        listOf(300, 301, 302, 303, 307, 308).forEach { statusCode ->
+            assertTrue(ProviderHttpClientPolicy.isRedirectStatus(statusCode))
         }
     }
 }
