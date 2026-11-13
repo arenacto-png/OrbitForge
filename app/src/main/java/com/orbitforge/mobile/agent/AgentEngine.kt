@@ -4,6 +4,7 @@ import android.content.Context
 import com.orbitforge.mobile.ai.ProviderConfig
 import com.orbitforge.mobile.ai.ProviderApiAdapter
 import com.orbitforge.mobile.ai.ProviderRequestTrace
+import com.orbitforge.mobile.ai.ProviderHttpClientPolicy
 import com.orbitforge.mobile.diagnostics.DiagnosticLog
 import com.orbitforge.mobile.security.SecretStore
 import com.orbitforge.mobile.mcp.McpTool
@@ -13,7 +14,6 @@ import com.orbitforge.mobile.network.BoundedResponseBodyReader
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.Response
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -34,7 +34,7 @@ class AgentEngine(context: Context) {
     private val settings = appContext.getSharedPreferences("orbitforge_settings", Context.MODE_PRIVATE)
     private val secrets = SecretStore(appContext)
     private val mcpClient = McpClient()
-    private val http = OkHttpClient.Builder()
+    private val http = ProviderHttpClientPolicy.newBuilder()
         .connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(90, TimeUnit.SECONDS)
         .callTimeout(100, TimeUnit.SECONDS)
@@ -183,6 +183,21 @@ class AgentEngine(context: Context) {
                 override fun onResponse(call: Call, response: Response) {
                     response.use {
                         try {
+                            if (response.code in 300..399) {
+                                DiagnosticLog.add(
+                                    appContext,
+                                    "WARN",
+                                    "ProviderRequest",
+                                    trace.event(
+                                        "agent",
+                                        config.apiFormat,
+                                        "redirect_blocked",
+                                        statusCode = response.code,
+                                        durationMillis = trace.elapsedMillis()
+                                    )
+                                )
+                                throw ProviderHttpClientPolicy.redirectFailure(response.code)
+                            }
                             val text = response.body?.byteStream()?.use { BoundedResponseBodyReader.read(it) }.orEmpty()
                             DiagnosticLog.add(
                                 appContext,
