@@ -28,6 +28,7 @@
 - [ ] Support structured multi-file patch application
 - [x] Add conversation/task cancellation and recovery tests (persist cancelled result and preserve partial chat output)
 - [x] Add provider-specific request/response adapters for OpenAI-compatible Chat Completions and Anthropic Messages (streaming chat and agent tool calls)
+- [x] Disable automatic redirects for authenticated provider chat and agent requests; report redirect responses without following server-selected destinations
 - [x] Add local provider request correlation IDs and duration/status events without logging prompts or credentials
 - [ ] Add clearer provider usage/error diagnostics (bounded error details and token-usage accounting)
 
@@ -43,6 +44,7 @@
 - [x] Reject Git pathspec metacharacters in reviewed local commit paths before staging
 - [x] GitHub workspace sync preview with added/modified/unchanged classification and stale-plan checks (remote GitHub sync; not local Git)
 - [x] Apply the shared sensitive-path policy to local Git and GitHub workspace sync
+- [x] Disable automatic redirects for authenticated GitHub workspace API calls so file contents are not forwarded to server-selected destinations
 
 ## Milestone 4 — Runtime and extensibility
 - [x] Limited app-private workspace terminal with command allowlist
