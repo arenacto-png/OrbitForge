@@ -4,6 +4,7 @@ import android.content.Context
 import com.orbitforge.mobile.ai.ProviderConfig
 import com.orbitforge.mobile.ai.ProviderApiAdapter
 import com.orbitforge.mobile.ai.ProviderRequestTrace
+import com.orbitforge.mobile.ai.ProviderHttpClientPolicy
 import com.orbitforge.mobile.diagnostics.DiagnosticLog
 import com.orbitforge.mobile.security.SecretStore
 import com.orbitforge.mobile.mcp.McpTool
@@ -13,7 +14,6 @@ import com.orbitforge.mobile.network.BoundedResponseBodyReader
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.Response
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -42,7 +42,7 @@ class AgentEngine(context: Context) {
     private val settings = appContext.getSharedPreferences("orbitforge_settings", Context.MODE_PRIVATE)
     private val secrets = SecretStore(appContext)
     private val mcpClient = McpClient()
-    private val http = OkHttpClient.Builder()
+    private val http = ProviderHttpClientPolicy.newBuilder()
         .connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(90, TimeUnit.SECONDS)
         .callTimeout(100, TimeUnit.SECONDS)
@@ -191,6 +191,21 @@ class AgentEngine(context: Context) {
                 override fun onResponse(call: Call, response: Response) {
                     response.use {
                         try {
+                            if (ProviderHttpClientPolicy.isRedirectStatus(response.code)) {
+                                DiagnosticLog.add(
+                                    appContext,
+                                    "WARN",
+                                    "ProviderRequest",
+                                    trace.event(
+                                        "agent",
+                                        config.apiFormat,
+                                        "redirect_blocked",
+                                        statusCode = response.code,
+                                        durationMillis = trace.elapsedMillis()
+                                    )
+                                )
+                                throw ProviderHttpClientPolicy.redirectFailure(response.code)
+                            }
                             val text = response.body?.byteStream()?.use { BoundedResponseBodyReader.read(it) }.orEmpty()
                             DiagnosticLog.add(
                                 appContext,
@@ -407,50 +422,50 @@ class AgentEngine(context: Context) {
             return "Патч отклонён пользователем. Файлы не изменены."
         }
 
-        val attempted = mutableListOf<PreparedWorkspacePatch>()
-        try {
-            for (change in prepared) {
-                val currentTarget = validatedTarget(change.path, change.canonicalPath)
-                require(currentTarget.isFile && currentTarget.length() <= StructuredWorkspacePatch.MAX_FILE_BYTES) {
-                    "Файл " + change.path + " изменился после предпросмотра; патч отменён."
-                }
-                require(workspace.readFileForAgent(change.path) == change.original) {
-                    "Файл " + change.path + " изменился после предпросмотра; патч отменён."
-                }
-                attempted += change
-                workspace.writeFile(change.path, change.updated)
-            }
-        } catch (error: Exception) {
-            val rollbackFailures = mutableListOf<String>()
-            attempted.asReversed().forEach { change ->
-                try {
-                    val target = validatedTarget(change.path, change.canonicalPath)
-                    require(target.isFile)
-                    val currentContent = workspace.readFileForAgent(change.path)
-                    if (StructuredWorkspacePatch.shouldRestoreOriginal(
-                            currentContent,
-                            change.original,
-                            change.updated
-                        )
-                    ) {
-                        workspace.writeFile(change.path, change.original)
+        return WorkspaceMutationLock.withLock {
+            val attempted = mutableListOf<PreparedWorkspacePatch>()
+            try {
+                // Revalidate all files before the first write. App-controlled mutations share this lock.
+                for (change in prepared) {
+                    val currentTarget = validatedTarget(change.path, change.canonicalPath)
+                    require(currentTarget.isFile && currentTarget.length() <= StructuredWorkspacePatch.MAX_FILE_BYTES) {
+                        "Файл " + change.path + " изменился после предпросмотра; патч отменён."
                     }
-                } catch (_: Exception) {
-                    rollbackFailures += change.path
+                    require(workspace.readFileForAgent(change.path) == change.original) {
+                        "Файл " + change.path + " изменился после предпросмотра; патч отменён."
+                    }
                 }
+                for (change in prepared) {
+                    attempted += change
+                    workspace.writeFile(change.path, change.updated)
+                }
+            } catch (error: Exception) {
+                val rollbackFailures = mutableListOf<String>()
+                attempted.asReversed().forEach { change ->
+                    try {
+                        val target = validatedTarget(change.path, change.canonicalPath)
+                        require(target.isFile)
+                        val currentContent = workspace.readFileForAgent(change.path)
+                        if (StructuredWorkspacePatch.shouldRestoreOriginal(currentContent, change.original, change.updated)) {
+                            workspace.writeFile(change.path, change.original)
+                        }
+                    } catch (_: Exception) {
+                        rollbackFailures += change.path
+                    }
+                }
+                if (rollbackFailures.isNotEmpty()) {
+                    DiagnosticLog.add(appContext, "ERROR", "AgentTool",
+                        "Structured patch rollback incomplete for " + rollbackFailures.joinToString(", "))
+                    throw IOException(
+                        "Патч применён не полностью; не удалось безопасно восстановить: " +
+                            rollbackFailures.joinToString(", "),
+                        error
+                    )
+                }
+                throw error
             }
-            if (rollbackFailures.isNotEmpty()) {
-                DiagnosticLog.add(appContext, "ERROR", "AgentTool",
-                    "Structured patch rollback incomplete for " + rollbackFailures.joinToString(", "))
-                throw IOException(
-                    "Патч применён не полностью; не удалось безопасно восстановить: " +
-                        rollbackFailures.joinToString(", "),
-                    error
-                )
-            }
-            throw error
+            "Структурированный патч применён: " + prepared.size + " файлов, " + totalEdits + " точечных правок."
         }
-        return "Структурированный патч применён: " + prepared.size + " файлов, " + totalEdits + " точечных правок."
     }
 
     private fun toolDefinitions(externalTools: List<McpTool> = emptyList()): JSONArray = JSONArray().apply {

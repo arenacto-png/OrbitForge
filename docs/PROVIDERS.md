@@ -23,6 +23,8 @@ OrbitForge currently supports two wire formats behind the same chat and agent in
 Each chat or agent HTTP request receives a locally generated correlation ID. Diagnostic events record the operation, API format, phase, HTTP status when available, elapsed time, and exception class. The ID is included in HTTP failure messages so a user can match the error with the diagnostic report. It is not sent to the provider.
 
 Trace events deliberately omit request URLs, headers, request/response bodies, and prompts. Error-body detail handling and token-usage accounting are tracked separately and are not implied by this request tracing.
+Provider chat and agent HTTP clients do not follow 3xx redirects, including HTTPS-to-HTTP downgrades. A redirect response is surfaced as an actionable error without reading its body or `Location` header. Configure the final API endpoint directly; prefer HTTPS.
+
 
 ## Scope and limitations
 

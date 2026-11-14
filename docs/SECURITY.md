@@ -4,14 +4,18 @@
 - Never put API keys, access tokens, or signing credentials in source control.
 - Avoid logging authorization headers, raw secrets, or sensitive prompt content.
 - Provider request traces use a locally generated correlation ID plus operation, API format, phase, status, duration, and exception class only. Do not send trace IDs as provider headers or log request URLs, headers, bodies, or prompts.
-- Diagnostic redaction is best-effort; users must inspect reports before sharing.
+- Diagnostic redaction covers common plain-text and quoted JSON credential assignments, including authorization and cookie headers. Previously persisted lines are re-sanitized on read/export and before they are retained on the next write; redaction remains best-effort, so users must inspect reports before sharing.
 - Treat model output, tool names, paths, and arguments as untrusted input.
 - Validate tool arguments against explicit schemas.
 - Validate paths before showing approval prompts and restrict file operations to the chosen workspace root; reject traversal and symlink escapes. Agent read/write/search policies must check the canonical target as well as the user-supplied path so in-root symlink aliases cannot bypass sensitive-file exclusions.
 - Ask for approval before destructive writes, shell commands, network access, or publishing changes.
 - App-private workspace saves write UTF-8 content to a same-directory temporary file, sync it, and replace the target with an atomic move. If the filesystem cannot provide an atomic move, the save fails closed instead of falling back to a direct truncating write. This protects individual files, not a multi-file operation.
+- Structured multi-file patches hold a shared process-local workspace mutation lock across final revalidation, per-file atomic writes, and guarded rollback. Other app-controlled editor, agent, and terminal mutations use the same lock. This prevents in-process write races but is not a durable filesystem transaction; process termination or out-of-process changes can still leave a partial operation.
 - SAF export must finish writing a temporary destination document before moving an existing user file to a backup name. If promotion fails, attempt to restore the previous document; if restoration cannot be confirmed, retain the backup. Never delete an existing destination before the staged copy completes, and do not fall back to direct truncating overwrite when provider rename is unsupported.
 - Provide cancellation, timeouts, output-size limits, and a bounded number of agent steps. Non-streaming agent-provider and remote MCP HTTP response bodies are capped at 2 MiB before JSON/SSE parsing.
+- Remote MCP requests disable automatic redirects, including HTTPS-to-HTTP redirects. A configured MCP server cannot silently redirect a bearer-token request to a different destination; users must configure the final HTTPS endpoint directly.
+- Provider chat and agent requests also disable automatic redirects, including HTTPS-to-HTTP downgrades. A provider-controlled 3xx cannot forward prompts, tool context, or authorization headers to a redirected destination; redirect responses are handled without reading the body or `Location` header. Configure the final API endpoint directly.
+- GitHub workspace API requests carrying a personal access token or workspace file contents also disable automatic redirects, including HTTPS-to-HTTP downgrades. Redirect responses are handled without reading the body or `Location` header; update a renamed repository's owner/name explicitly rather than following a server-selected destination.
 - Validate the entire provider tool-call batch before executing any call. Require the OpenAI-compatible `type: function` discriminator; derive the accepted tool-name allowlist from the exact function definitions sent to the provider so newly added tools cannot be accidentally rejected or silently omitted; reject malformed arrays/entries, duplicate call IDs, unknown tool names, and malformed or non-object JSON arguments; never substitute empty arguments after a parse failure.
 - Limit the agent to eight model rounds and eight tool calls per round. Do not execute tool calls returned in the final permitted round, because there is no remaining model round to process their results.
 - Keep command execution isolated from the app process where feasible. Android-local Linux environments have limitations; do not describe PRoot as a strong security sandbox.
@@ -21,8 +25,8 @@
 
 ## Agent tool policy
 
-- Agent tools are limited to listing files, reading UTF-8 text, writing UTF-8 files, applying bounded structured patches, and invoking the allowlisted terminal in the app-private workspace.
-- Whole-file agent writes are capped at 10 KB and require explicit confirmation in the UI. Structured patches are limited to existing non-sensitive files, validate exact unique matches, and require one confirmation for the complete bounded diff. Before displaying an agent write diff, existing content is read through the same canonical sensitive-path and secret-content policy; previews fail closed rather than showing sensitive file contents.
+- The first agent tools are limited to listing files, reading UTF-8 text, and writing UTF-8 files in the app-private workspace.
+- Write operations are capped at 10 KB and require explicit confirmation in the UI. Before displaying an agent write diff, existing content is read through the same canonical sensitive-path and secret-content policy; previews fail closed rather than showing sensitive file contents.
 - Workspace paths are canonicalized and checked against the workspace root to block ordinary traversal and symlink escapes.
 - The workspace terminal uses a stateful tokenizer rather than a system shell. It rejects unmatched quotes, multiline input, unsupported backslash escapes, and shell-control operators outside quoted arguments; quoted operator characters are treated as data.
 

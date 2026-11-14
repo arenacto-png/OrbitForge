@@ -25,9 +25,10 @@
 - [x] Filter agent-facing file listings and terminal traversal for sensitive paths and canonical symlink aliases
 - [x] Validate existing file content before exposing agent write-approval diffs
 - [x] Bounded diff preview before agent writes; approve/reject supported
-- [x] Support structured multi-file patch application with exact-match validation, one combined approval, bounded diffs, and guarded best-effort rollback
+- [x] Support structured multi-file patch application with exact-match validation, one combined approval, serialized app-controlled mutations, bounded per-file atomic writes, and guarded best-effort rollback
 - [x] Add conversation/task cancellation and recovery tests (persist cancelled result and preserve partial chat output)
 - [x] Add provider-specific request/response adapters for OpenAI-compatible Chat Completions and Anthropic Messages (streaming chat and agent tool calls)
+- [x] Disable automatic redirects for authenticated provider chat and agent requests; report redirect responses without following server-selected destinations
 - [x] Add local provider request correlation IDs and duration/status events without logging prompts or credentials
 - [ ] Add clearer provider usage/error diagnostics (bounded error details and token-usage accounting)
 
@@ -43,6 +44,7 @@
 - [x] Reject Git pathspec metacharacters in reviewed local commit paths before staging
 - [x] GitHub workspace sync preview with added/modified/unchanged classification and stale-plan checks (remote GitHub sync; not local Git)
 - [x] Apply the shared sensitive-path policy to local Git and GitHub workspace sync
+- [x] Disable automatic redirects for authenticated GitHub workspace API calls so file contents are not forwarded to server-selected destinations
 
 ## Milestone 4 — Runtime and extensibility
 - [x] Limited app-private workspace terminal with command allowlist
@@ -51,7 +53,7 @@
 - [x] Enforce the shared sensitive-path policy for terminal `mkdir`/`touch`, including canonical aliases
 - [ ] Optional Termux/remote runtime adapter
 - [x] Skills (`SKILL.md`) loader with editable starter skills and size limits
-- [x] Single remote MCP endpoint with tool discovery/calls, approval before every external tool call, and shared 2 MiB HTTP response bounds for MCP and non-streaming agent-provider calls
+- [x] Single remote MCP endpoint with tool discovery/calls, approval before every external tool call, shared 2 MiB HTTP response bounds, and automatic redirects disabled
 - [ ] Optional remote executor for heavy builds
 - [x] CI workflow for unit tests and debug APK artifact
 - [ ] Release signing guidance and APK verification
