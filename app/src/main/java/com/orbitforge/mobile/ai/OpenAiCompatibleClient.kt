@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
@@ -21,7 +20,7 @@ import java.util.concurrent.TimeUnit
 data class ApiMessage(val role: String, val content: String)
 
 class OpenAiCompatibleClient(private val context: Context) {
-    private val http = OkHttpClient.Builder()
+    private val http = ProviderHttpClientPolicy.newBuilder()
         .connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(90, TimeUnit.SECONDS)
         .callTimeout(0, TimeUnit.MILLISECONDS)
@@ -76,6 +75,9 @@ class OpenAiCompatibleClient(private val context: Context) {
                         )
                     )
                     if (!response.isSuccessful) {
+                        if (ProviderHttpClientPolicy.isRedirectStatus(response.code)) {
+                            throw ProviderHttpClientPolicy.redirectFailure(response.code)
+                        }
                         val body = try {
                             response.body?.byteStream()?.use {
                                 BoundedResponseBodyReader.read(it, MAX_ERROR_BODY_BYTES)

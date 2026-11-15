@@ -22,13 +22,15 @@ OrbitForge currently supports two wire formats behind the same chat and agent in
 
 Each chat or agent HTTP request receives a locally generated correlation ID. Diagnostic events record the operation, API format, phase, HTTP status when available, elapsed time, and exception class. The ID is included in HTTP failure messages so a user can match the error with the diagnostic report. It is not sent to the provider.
 
-Trace events deliberately omit request URLs, headers, request/response bodies, and prompts. Provider HTTP errors now use bounded, redacted guidance; token usage is recorded only when the provider returns parseable counters. Request tracing does not itself imply either behavior.
+Trace events deliberately omit request URLs, headers, request/response bodies, and prompts. Provider HTTP errors use bounded, redacted guidance; token usage is recorded only when the provider returns parseable counters. Request tracing does not itself imply either behavior.
 
 ## HTTP errors and usage
 
 Common HTTP statuses map to actionable guidance. Error-body reads are bounded (64 KiB for streaming chat and 2 MiB for non-streaming agent requests); only selected request errors may include a redacted detail excerpt capped at 250 characters. Network guidance distinguishes timeouts, DNS failures, TLS failures, and connection failures without exposing raw exception messages.
 
 OpenAI-compatible usage counters are recorded when included in a non-streaming response or streaming usage event. The parser also recognizes Anthropic input/output counter names and merges partial streaming counters when those events are present. Missing, malformed, negative, or out-of-range telemetry is ignored rather than failing a request.
+Provider chat and agent HTTP clients do not follow 3xx redirects, including HTTPS-to-HTTP downgrades. A redirect response is surfaced as an actionable error without reading its body or `Location` header. Configure the final API endpoint directly; prefer HTTPS.
+
 
 ## Scope and limitations
 
