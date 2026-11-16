@@ -64,6 +64,14 @@ Authorization: Bearer mcp-metadata-secret"""
     }
 
     @Test
+    fun rejectsBlankOversizedAndControlCharacterToolNames() {
+        assertTrue(McpContentSanitizer.isSafeToolName("workspace_read"))
+        assertFalse(McpContentSanitizer.isSafeToolName(""))
+        assertFalse(McpContentSanitizer.isSafeToolName("tool\nspoofed approval"))
+        assertFalse(McpContentSanitizer.isSafeToolName("x".repeat(McpContentSanitizer.MAX_TOOL_NAME_CHARS + 1)))
+    }
+
+    @Test
     fun labelsNestedSchemaDescriptionsWithoutMutatingTheOriginal() {
         val original = JSONObject()
             .put("type", "object")
