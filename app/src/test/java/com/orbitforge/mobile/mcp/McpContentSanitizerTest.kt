@@ -67,14 +67,14 @@ Authorization: Bearer mcp-metadata-secret"""
         val original = JSONObject()
             .put("type", "object")
             .put("title", "workspace tool")
-            .put("description", "Top-level schema\\napi_key=top-level-schema-secret")
+            .put("description", "Top-level schema\napi_key=top-level-schema-secret")
             .put(
                 "properties",
                 JSONObject().put(
                     "path",
                     JSONObject()
                         .put("type", "string")
-                        .put("description", "Relative path\\npassword=nested-schema-secret")
+                        .put("description", "Relative path\npassword=nested-schema-secret")
                 )
             )
 
@@ -89,6 +89,7 @@ Authorization: Bearer mcp-metadata-secret"""
         assertEquals("workspace tool", safe.getString("title"))
         assertTrue(original.getString("description").contains("top-level-schema-secret"))
     }
+
     @Test
     fun capsErrorDetailsAndUsesFallbackForBlankInput() {
         val safe = McpContentSanitizer.errorDetail("e".repeat(500), "no details")
