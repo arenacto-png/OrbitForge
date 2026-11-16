@@ -3,6 +3,7 @@ package com.orbitforge.mobile.mcp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.json.JSONObject
 import org.junit.Test
 
 class McpContentSanitizerTest {
