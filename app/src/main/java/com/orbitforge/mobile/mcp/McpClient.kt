@@ -72,7 +72,10 @@ class McpSession internal constructor(
             val item = list.optJSONObject(index) ?: return@mapNotNull null
             val name = item.optString("name")
             if (name.isBlank()) return@mapNotNull null
-            val inputSchema = item.optJSONObject("inputSchema") ?: JSONObject().put("type", "object").put("properties", JSONObject())
+            val rawInputSchema = item.optJSONObject("inputSchema") ?: JSONObject().put("type", "object").put("properties", JSONObject())
+            if (rawInputSchema.toString().length > MAX_SCHEMA_CHARS) return@mapNotNull null
+            val inputSchema = runCatching { McpContentSanitizer.schemaDescriptions(rawInputSchema) }.getOrNull()
+                ?: return@mapNotNull null
             if (inputSchema.toString().length > MAX_SCHEMA_CHARS) return@mapNotNull null
             val safePrefix = endpoint.substringAfter("://").substringBefore('/').lowercase()
                 .replace(Regex("[^a-z0-9_]"), "_").take(16)
@@ -80,7 +83,7 @@ class McpSession internal constructor(
             McpTool(
                 name = name,
                 exposedName = "mcp_${safePrefix}_${index}_$safeName",
-                description = item.optString("description").take(500),
+                description = McpContentSanitizer.toolDescription(item.optString("description")),
                 inputSchema = inputSchema
             )
         }.take(50)
