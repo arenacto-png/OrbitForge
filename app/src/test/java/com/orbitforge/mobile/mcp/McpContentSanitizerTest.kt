@@ -8,7 +8,8 @@ import org.junit.Test
 class McpContentSanitizerTest {
     @Test
     fun redactsCredentialFieldsAndAuthorizationHeadersFromToolOutput() {
-        val input = """{"access_token":"mcp-access-secret","model":"build"}\nAuthorization: Bearer mcp-bearer-secret-value"""
+        val input = """{"access_token":"mcp-access-secret","model":"build"}
+Authorization: Bearer mcp-bearer-secret-value"""
         val safe = McpContentSanitizer.toolOutput(input)
 
         assertFalse(safe.contains("mcp-access-secret"))
@@ -36,7 +37,9 @@ class McpContentSanitizerTest {
     @Test
     fun redactsAndNormalizesBoundedRemoteErrorDetails() {
         val safe = McpContentSanitizer.errorDetail(
-            "request failed\nAuthorization: Bearer mcp-error-secret-value\nretry later",
+            """request failed
+Authorization: Bearer mcp-error-secret-value
+retry later""",
             "no details"
         )
 
