@@ -71,7 +71,7 @@ class McpSession internal constructor(
         tools = (0 until list.length()).mapNotNull { index ->
             val item = list.optJSONObject(index) ?: return@mapNotNull null
             val name = item.optString("name")
-            if (name.isBlank()) return@mapNotNull null
+            if (!McpContentSanitizer.isSafeToolName(name)) return@mapNotNull null
             val rawInputSchema = item.optJSONObject("inputSchema") ?: JSONObject().put("type", "object").put("properties", JSONObject())
             if (rawInputSchema.toString().length > MAX_SCHEMA_CHARS) return@mapNotNull null
             val inputSchema = runCatching { McpContentSanitizer.schemaDescriptions(rawInputSchema) }.getOrNull()
