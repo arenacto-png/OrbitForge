@@ -27,7 +27,7 @@ internal object McpContentSanitizer {
     fun isSafeToolName(input: String): Boolean =
         input.isNotBlank() &&
             input.length <= MAX_TOOL_NAME_CHARS &&
-            input.none { it.code < 0x20 || it.code == 0x7f }
+            input.none { it.code < 0x20 || it.code in 0x7f..0x9f || it.code == 0x2028 || it.code == 0x2029 }
 
     /**
      * Copies the remote schema and labels every nested description as untrusted metadata.
