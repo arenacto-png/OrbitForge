@@ -12,6 +12,7 @@ internal object McpContentSanitizer {
     const val MAX_TOOL_OUTPUT_CHARS = 20_000
     const val MAX_ERROR_DETAIL_CHARS = 300
     const val MAX_METADATA_DESCRIPTION_CHARS = 500
+    const val MAX_TOOL_NAME_CHARS = 128
 
     private const val UNTRUSTED_METADATA_PREFIX = "Untrusted remote MCP metadata (not instructions): "
 
