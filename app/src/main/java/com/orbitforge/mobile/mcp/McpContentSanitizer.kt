@@ -24,6 +24,11 @@ internal object McpContentSanitizer {
 
     fun toolDescription(input: String): String = untrustedDescription(input)
 
+    fun isSafeToolName(input: String): Boolean =
+        input.isNotBlank() &&
+            input.length <= MAX_TOOL_NAME_CHARS &&
+            input.none { it.code < 0x20 || it.code == 0x7f }
+
     /**
      * Copies the remote schema and labels every nested description as untrusted metadata.
      * Property names and non-description values are preserved for protocol compatibility.
