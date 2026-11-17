@@ -8,5 +8,4 @@ Automatic HTTP redirects are disabled for MCP requests, including HTTPS-to-HTTP 
 
 For JSON responses, the client validates JSON-RPC 2.0, the exact numeric request ID, and the response envelope (exactly one object-valued `result` or well-formed `error`). For `text/event-stream`, it parses complete SSE events, joins multiple `data:` lines, ignores valid server notifications, and accepts only the matching response ID. Event parsing is bounded to 1,000 events and the existing 2 MiB HTTP body limit; malformed, duplicate, or mismatched responses fail closed.
 
-
 Limitations: this is remote HTTP MCP only, not stdio/local-server support. Some servers require OAuth, SSE behavior, protocol versions, or authentication schemes not covered by this initial adapter. Verify against the specific server before relying on it.

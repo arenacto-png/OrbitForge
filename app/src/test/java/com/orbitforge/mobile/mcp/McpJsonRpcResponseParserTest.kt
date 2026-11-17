@@ -106,6 +106,24 @@ class McpJsonRpcResponseParserTest {
     }
 
     @Test
+    fun rejectsNonStringVersionAndExplicitNullId() {
+        expectRejected {
+            McpJsonRpcResponseParser.parse(
+                """{"jsonrpc":2.0,"id":7,"result":{}}""",
+                "application/json",
+                expectedId = 7
+            )
+        }
+        expectRejected {
+            McpJsonRpcResponseParser.parse(
+                """data: {"jsonrpc":"2.0","id":null,"method":"notifications/progress"}""",
+                "text/event-stream",
+                expectedId = 7
+            )
+        }
+    }
+
+    @Test
     fun rejectsResponsesWithBothOrNeitherResultAndError() {
         expectRejected {
             McpJsonRpcResponseParser.parse(

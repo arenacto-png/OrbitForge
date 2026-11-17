@@ -26,12 +26,11 @@ internal object McpJsonRpcResponseParser {
                 throw IllegalArgumentException("MCP response event is not a JSON object.")
             }
 
-            require(message.optString("jsonrpc") == "2.0") {
+            require(message.opt("jsonrpc") is String && message.opt("jsonrpc") == "2.0") {
                 "MCP response does not use JSON-RPC 2.0."
             }
 
-            val rawId = message.opt("id")
-            if (rawId == null || rawId == JSONObject.NULL) {
+            if (!message.has("id")) {
                 val method = message.opt("method") as? String
                 require(isEventStream && !method.isNullOrBlank()) {
                     "MCP response has no request identifier."
@@ -39,6 +38,10 @@ internal object McpJsonRpcResponseParser {
                 return@forEach
             }
 
+            val rawId = message.opt("id")
+            require(rawId != null && rawId != JSONObject.NULL) {
+                "MCP response identifier must not be null."
+            }
             val numericId = rawId as? Number
                 ?: throw IllegalArgumentException("MCP response identifier has an unsupported type.")
             val idAsLong = numericId.toLong()
