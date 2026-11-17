@@ -132,12 +132,16 @@ class McpSession internal constructor(
             val detail = McpContentSanitizer.errorDetail(result.body, "")
             throw IOException("MCP HTTP ${result.code}" + detail.takeIf { it.isNotBlank() }?.let { ": $it" }.orEmpty())
         }
-        if (notification && result.body.isBlank()) return JSONObject()
-        val jsonText = if (result.contentType.contains("text/event-stream", ignoreCase = true)) {
-            result.body.lineSequence().firstOrNull { it.startsWith("data:") }?.removePrefix("data:")?.trim().orEmpty()
-        } else result.body
-        return try { JSONObject(jsonText) } catch (e: Exception) {
-            throw IOException("MCP вернул неподдерживаемый ответ. Ожидался JSON или SSE data event.")
+        // JSON-RPC notifications have no response. Do not try to parse implementation-specific bodies.
+        if (notification) return JSONObject()
+        val requestId = id ?: throw IOException("MCP request identifier is missing.")
+        return try {
+            McpJsonRpcResponseParser.parse(result.body, result.contentType, requestId)
+        } catch (e: Exception) {
+            throw IOException(
+                "MCP вернул некорректный JSON-RPC ответ (версия, идентификатор или структура).",
+                e
+            )
         }
     }
 
