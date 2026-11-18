@@ -81,8 +81,9 @@ internal object ProviderApiAdapter {
 
     fun isStreamFinished(format: ProviderApiFormat, event: JSONObject): Boolean =
         when (format) {
-            ProviderApiFormat.OPENAI_COMPATIBLE ->
-                event.optJSONArray("choices")?.optJSONObject(0)?.optString("finish_reason") == "stop"
+            // OpenAI-compatible streams can send a usage-only chunk after finish_reason=stop.
+            // The reader therefore waits for [DONE] or EOF before closing the stream.
+            ProviderApiFormat.OPENAI_COMPATIBLE -> false
             ProviderApiFormat.ANTHROPIC_MESSAGES -> event.optString("type") == "message_stop"
         }
 
