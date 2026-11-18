@@ -31,10 +31,10 @@ internal object McpJsonRpcResponseParser {
             }
 
             if (!message.has("id")) {
-                val method = message.opt("method") as? String
-                require(isEventStream && !method.isNullOrBlank()) {
+                require(isEventStream) {
                     "MCP response has no request identifier."
                 }
+                validateNotification(message)
                 return@forEach
             }
 
@@ -79,6 +79,22 @@ internal object McpJsonRpcResponseParser {
 
         return matchedResponse
             ?: throw IllegalArgumentException("MCP event stream has no response for this request.")
+    }
+
+    private fun validateNotification(message: JSONObject) {
+        val method = message.opt("method") as? String
+        require(!method.isNullOrBlank()) {
+            "MCP server notification must contain a non-empty method."
+        }
+        require(!message.has("result") && !message.has("error")) {
+            "MCP server notification must not contain response fields."
+        }
+        if (message.has("params")) {
+            val params = message.opt("params")
+            require(params is JSONObject || params is JSONArray) {
+                "MCP server notification params must be an object or array."
+            }
+        }
     }
 
     private fun readSseDataEvents(body: String): List<String> {
