@@ -183,6 +183,66 @@ class McpJsonRpcResponseParserTest {
         }
     }
 
+    @Test
+    fun acceptsWellFormedInterleavedNotificationsWithObjectAndArrayParams() {
+        val body = listOf(
+            """data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progress":1}}""",
+            "",
+            """data: {"jsonrpc":"2.0","method":"notifications/message","params":["ready"]}""",
+            "",
+            """data: {"jsonrpc":"2.0","id":7,"result":{"ok":true}}"""
+        ).joinToString("\n")
+
+        val parsed = McpJsonRpcResponseParser.parse(body, "text/event-stream", expectedId = 7)
+
+        assertTrue(parsed.getJSONObject("result").getBoolean("ok"))
+    }
+
+    @Test
+    fun rejectsNotificationsContainingResultOrErrorFields() {
+        val invalidNotifications = listOf(
+            """{"jsonrpc":"2.0","method":"notifications/progress","result":{}}""",
+            """{"jsonrpc":"2.0","method":"notifications/progress","error":{"code":-1,"message":"bad"}}"""
+        )
+        invalidNotifications.forEach { notification ->
+            expectRejected {
+                McpJsonRpcResponseParser.parse(
+                    "data: $notification",
+                    "text/event-stream",
+                    expectedId = 7
+                )
+            }
+        }
+    }
+
+    @Test
+    fun rejectsNotificationsWithScalarParamsOrBlankMethods() {
+        val invalidNotifications = listOf(
+            """{"jsonrpc":"2.0","method":"notifications/progress","params":"not-an-object-or-array"}""",
+            """{"jsonrpc":"2.0","method":"   "}"""
+        )
+        invalidNotifications.forEach { notification ->
+            expectRejected {
+                McpJsonRpcResponseParser.parse(
+                    "data: $notification",
+                    "text/event-stream",
+                    expectedId = 7
+                )
+            }
+        }
+    }
+
+    @Test
+    fun rejectsNotificationsOutsideAnEventStream() {
+        expectRejected {
+            McpJsonRpcResponseParser.parse(
+                """{"jsonrpc":"2.0","method":"notifications/progress","params":{}}""",
+                "application/json",
+                expectedId = 7
+            )
+        }
+    }
+
     private fun expectRejected(block: () -> Unit) {
         try {
             block()
