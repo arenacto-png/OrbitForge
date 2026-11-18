@@ -15,7 +15,18 @@ else
     printf 'Set ANDROID_HOME or ANDROID_SDK_ROOT to an Android SDK with Build Tools.\n' >&2
     exit 2
   fi
-  apksigner_bin="$(find "$sdk_root/build-tools" -type f -name apksigner -print | sort -V | tail -n 1)"
+  if sort -V </dev/null >/dev/null 2>&1; then
+    sort_args=(-V)
+  else
+    sort_args=(-t. -k1,1n -k2,2n -k3,3n)
+  fi
+  apksigner_bin="$(
+    find "$sdk_root/build-tools" -mindepth 2 -maxdepth 2 -type f -name apksigner -print |
+      awk -F/ '{ print $(NF-1) "\t" $0 }' |
+      sort "${sort_args[@]}" |
+      tail -n 1 |
+      cut -f2-
+  )"
 fi
 
 if [[ -z "${apksigner_bin:-}" || ! -x "$apksigner_bin" ]]; then
