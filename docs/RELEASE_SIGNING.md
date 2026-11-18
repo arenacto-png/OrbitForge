@@ -37,4 +37,6 @@ Get-FileHash .\app-release.apk -Algorithm SHA256
 
 Compare the certificate SHA-256 fingerprint with the expected release certificate from your secure record. A valid signature alone does not prove that the APK came from a trusted build; verify the fingerprint and checksum from a trusted source.
 
+Run `bash scripts/verify-apk.sh app/build/outputs/apk/debug/app-debug.apk` to verify the signature and write a checksum; the helper uses `sha256sum` or falls back to `shasum -a 256`. Its command-selection behavior is covered by `bash scripts/test-verify-apk.sh`.
+
 The CI workflow applies this verification to the debug APK only. It uploads `app-debug.apk` and `app-debug.apk.sha256` as a build artifact; it does not sign a production APK, create a GitHub Release, or distribute an app.

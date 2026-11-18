@@ -26,5 +26,13 @@ fi
 "$apksigner_bin" verify --verbose --print-certs "$apk_path"
 (
   cd "$(dirname "$apk_path")"
-  sha256sum "$(basename "$apk_path")" | tee "$(basename "$apk_path").sha256"
+  if command -v sha256sum >/dev/null 2>&1; then
+    checksum_command=(sha256sum)
+  elif command -v shasum >/dev/null 2>&1; then
+    checksum_command=(shasum -a 256)
+  else
+    printf 'Install sha256sum or shasum to create the APK checksum.\n' >&2
+    exit 2
+  fi
+  "${checksum_command[@]}" "$(basename "$apk_path")" | tee "$(basename "$apk_path").sha256"
 )

@@ -1,5 +1,7 @@
 package com.orbitforge.mobile.mcp
 
+import com.orbitforge.mobile.diagnostics.DiagnosticLog
+
 import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.Call
 import okhttp3.Callback
@@ -11,7 +13,6 @@ import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
-import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resumeWithException
 
 data class McpTool(
@@ -22,11 +23,7 @@ data class McpTool(
 )
 
 class McpClient {
-    private val http = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(45, TimeUnit.SECONDS)
-        .callTimeout(50, TimeUnit.SECONDS)
-        .build()
+    private val http = McpHttpClientPolicy.createClient()
 
     suspend fun connect(endpoint: String, bearerToken: String = ""): McpSession {
         val normalizedEndpoint = endpoint.trim()
@@ -59,17 +56,26 @@ class McpSession internal constructor(
                 .put("capabilities", JSONObject())
                 .put("clientInfo", JSONObject().put("name", "OrbitForge").put("version", "0.5.0"))
         )
-        if (initResponse.has("error")) throw IOException("MCP initialize error: ${initResponse.optJSONObject("error")?.optString("message")}")
+        if (initResponse.has("error")) {
+            val detail = McpContentSanitizer.errorDetail(initResponse.optJSONObject("error")?.opt("message") as? String, "без описания")
+            throw IOException("MCP initialize error: $detail")
+        }
         request("notifications/initialized", null, notification = true)
         val response = request("tools/list", JSONObject())
-        if (response.has("error")) throw IOException("MCP tools/list error: ${response.optJSONObject("error")?.optString("message")}")
+        if (response.has("error")) {
+            val detail = McpContentSanitizer.errorDetail(response.optJSONObject("error")?.opt("message") as? String, "без описания")
+            throw IOException("MCP tools/list error: $detail")
+        }
         val result = response.optJSONObject("result") ?: JSONObject()
         val list = result.optJSONArray("tools") ?: JSONArray()
         tools = (0 until list.length()).mapNotNull { index ->
             val item = list.optJSONObject(index) ?: return@mapNotNull null
             val name = item.optString("name")
-            if (name.isBlank()) return@mapNotNull null
-            val inputSchema = item.optJSONObject("inputSchema") ?: JSONObject().put("type", "object").put("properties", JSONObject())
+            if (!McpContentSanitizer.isSafeToolName(name)) return@mapNotNull null
+            val rawInputSchema = item.optJSONObject("inputSchema") ?: JSONObject().put("type", "object").put("properties", JSONObject())
+            if (rawInputSchema.toString().length > MAX_SCHEMA_CHARS) return@mapNotNull null
+            val inputSchema = runCatching { McpContentSanitizer.schemaDescriptions(rawInputSchema) }.getOrNull()
+                ?: return@mapNotNull null
             if (inputSchema.toString().length > MAX_SCHEMA_CHARS) return@mapNotNull null
             val safePrefix = endpoint.substringAfter("://").substringBefore('/').lowercase()
                 .replace(Regex("[^a-z0-9_]"), "_").take(16)
@@ -77,7 +83,7 @@ class McpSession internal constructor(
             McpTool(
                 name = name,
                 exposedName = "mcp_${safePrefix}_${index}_$safeName",
-                description = item.optString("description").take(500),
+                description = McpContentSanitizer.toolDescription(item.optString("description")),
                 inputSchema = inputSchema
             )
         }.take(50)
@@ -89,7 +95,8 @@ class McpSession internal constructor(
             JSONObject().put("name", name).put("arguments", arguments)
         )
         if (response.has("error")) {
-            throw IOException("MCP tool error: ${response.optJSONObject("error")?.optString("message")}")
+            val detail = McpContentSanitizer.errorDetail(response.optJSONObject("error")?.opt("message") as? String, "без описания")
+            throw IOException("MCP tool error: $detail")
         }
         val result = response.optJSONObject("result") ?: JSONObject()
         val content = result.optJSONArray("content") ?: JSONArray()
@@ -97,7 +104,7 @@ class McpSession internal constructor(
             val item = content.optJSONObject(index) ?: return@mapNotNull null
             if (item.optString("type") == "text") item.optString("text") else null
         }.joinToString("\n")
-        val bounded = output.take(MAX_RESULT_CHARS)
+        val bounded = McpContentSanitizer.toolOutput(output)
         return if (result.optBoolean("isError")) "MCP tool reported an error:\n$bounded" else bounded.ifBlank { "(MCP tool returned no text content)" }
     }
 
@@ -115,15 +122,26 @@ class McpSession internal constructor(
         sessionId?.let { builder.header("Mcp-Session-Id", it) }
         val result = execute(builder.build())
         result.sessionId?.let { sessionId = it }
-        if (result.code !in 200..299 && !(notification && result.code == 202)) {
-            throw IOException("MCP HTTP ${result.code}: ${result.body.take(300)}")
+        if (result.code in 300..399) {
+            throw IOException(
+                "MCP endpoint returned HTTP ${result.code}; automatic redirects are disabled. " +
+                    "Configure the final HTTPS endpoint directly."
+            )
         }
-        if (notification && result.body.isBlank()) return JSONObject()
-        val jsonText = if (result.contentType.contains("text/event-stream", ignoreCase = true)) {
-            result.body.lineSequence().firstOrNull { it.startsWith("data:") }?.removePrefix("data:")?.trim().orEmpty()
-        } else result.body
-        return try { JSONObject(jsonText) } catch (e: Exception) {
-            throw IOException("MCP вернул неподдерживаемый ответ. Ожидался JSON или SSE data event.")
+        if (result.code !in 200..299 && !(notification && result.code == 202)) {
+            val detail = McpContentSanitizer.errorDetail(result.body, "")
+            throw IOException("MCP HTTP ${result.code}" + detail.takeIf { it.isNotBlank() }?.let { ": $it" }.orEmpty())
+        }
+        // JSON-RPC notifications have no response. Do not try to parse implementation-specific bodies.
+        if (notification) return JSONObject()
+        val requestId = id ?: throw IOException("MCP request identifier is missing.")
+        return try {
+            McpJsonRpcResponseParser.parse(result.body, result.contentType, requestId)
+        } catch (e: Exception) {
+            throw IOException(
+                "MCP вернул некорректный JSON-RPC ответ (версия, идентификатор или структура).",
+                e
+            )
         }
     }
 
@@ -157,7 +175,6 @@ class McpSession internal constructor(
     private data class HttpResult(val code: Int, val body: String, val contentType: String, val sessionId: String?)
 
     companion object {
-        private const val MAX_RESULT_CHARS = 20_000
         private const val MAX_SCHEMA_CHARS = 20_000
     }
 }

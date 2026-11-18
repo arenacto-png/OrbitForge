@@ -24,6 +24,8 @@ jobs:
           cache-provider: basic
       - name: Run unit tests
         run: ./gradlew test
+      - name: Test APK verification helper
+        run: bash scripts/test-verify-apk.sh
       - name: Build debug APK
         run: ./gradlew assembleDebug
       - name: Verify debug APK signature and SHA-256
