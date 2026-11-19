@@ -99,13 +99,7 @@ class McpSession internal constructor(
             throw IOException("MCP tool error: $detail")
         }
         val result = response.optJSONObject("result") ?: JSONObject()
-        val content = result.optJSONArray("content") ?: JSONArray()
-        val output = (0 until content.length()).mapNotNull { index ->
-            val item = content.optJSONObject(index) ?: return@mapNotNull null
-            if (item.optString("type") == "text") item.optString("text") else null
-        }.joinToString("\n")
-        val bounded = McpContentSanitizer.toolOutput(output)
-        return if (result.optBoolean("isError")) "MCP tool reported an error:\n$bounded" else bounded.ifBlank { "(MCP tool returned no text content)" }
+        return McpToolResultFormatter.format(result)
     }
 
     private suspend fun request(method: String, params: JSONObject?, notification: Boolean = false): JSONObject {

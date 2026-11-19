@@ -53,7 +53,7 @@
 - [x] Enforce the shared sensitive-path policy for terminal `mkdir`/`touch`, including canonical aliases
 - [ ] Optional Termux/remote runtime adapter
 - [x] Skills (`SKILL.md`) loader with editable starter skills and size limits
-- [x] Single remote MCP endpoint with tool discovery/calls, approval before every external tool call, shared 2 MiB HTTP response bounds, automatic redirects disabled, credential-redacted bounded tool/error output, untrusted remote metadata labeling, and bounded tool-name validation
+- [x] Single remote MCP endpoint with tool discovery/calls, approval before every external tool call, shared 2 MiB HTTP response bounds, automatic redirects disabled, credential-redacted bounded text/structured tool output and error details, embedded-resource text support, omission of binary media/resource-link URIs, untrusted remote metadata labeling, and bounded tool-name validation
 - [x] Validate MCP JSON-RPC 2.0 response IDs/envelopes, complete bounded SSE events, and interleaved notification envelopes
 - [ ] Optional remote executor for heavy builds
 - [x] CI workflow for unit tests and debug APK artifact
