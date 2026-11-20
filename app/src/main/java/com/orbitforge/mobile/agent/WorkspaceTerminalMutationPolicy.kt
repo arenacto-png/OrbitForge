@@ -8,24 +8,26 @@ import java.io.File
  * that resolve to sensitive/out-of-workspace targets.
  */
 internal object WorkspaceTerminalMutationPolicy {
-    fun createDirectory(rootDirectory: File, relativePath: String, target: File): File {
-        val safeTarget = validateTarget(rootDirectory, relativePath, target)
-        require(safeTarget.mkdirs() || safeTarget.isDirectory) { "Не удалось создать папку." }
-        return safeTarget
-    }
+    fun createDirectory(rootDirectory: File, relativePath: String, target: File): File =
+        WorkspaceMutationLock.withLock {
+            val safeTarget = validateTarget(rootDirectory, relativePath, target)
+            require(safeTarget.mkdirs() || safeTarget.isDirectory) { "Не удалось создать папку." }
+            safeTarget
+        }
 
-    fun createEmptyFile(rootDirectory: File, relativePath: String, target: File): File {
-        val safeTarget = validateTarget(rootDirectory, relativePath, target)
-        val parent = safeTarget.parentFile
-        require(parent != null && (parent.mkdirs() || parent.isDirectory)) {
-            "Не удалось создать родительскую папку."
+    fun createEmptyFile(rootDirectory: File, relativePath: String, target: File): File =
+        WorkspaceMutationLock.withLock {
+            val safeTarget = validateTarget(rootDirectory, relativePath, target)
+            val parent = safeTarget.parentFile
+            require(parent != null && (parent.mkdirs() || parent.isDirectory)) {
+                "Не удалось создать родительскую папку."
+            }
+            if (!safeTarget.exists()) {
+                require(safeTarget.createNewFile()) { "Не удалось создать файл." }
+            }
+            require(safeTarget.isFile) { "Путь существует, но это не файл." }
+            safeTarget
         }
-        if (!safeTarget.exists()) {
-            require(safeTarget.createNewFile()) { "Не удалось создать файл." }
-        }
-        require(safeTarget.isFile) { "Путь существует, но это не файл." }
-        return safeTarget
-    }
 
     private fun validateTarget(rootDirectory: File, relativePath: String, target: File): File {
         require(relativePath.isNotBlank()) { "Путь не может быть пустым." }

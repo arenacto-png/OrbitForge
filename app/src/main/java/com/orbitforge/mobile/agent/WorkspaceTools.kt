@@ -71,7 +71,7 @@ class WorkspaceTools(context: Context) {
         return content
     }
 
-    fun writeFile(relativePath: String, content: String): String {
+    fun writeFile(relativePath: String, content: String): String = WorkspaceMutationLock.withLock {
         val file = resolve(relativePath)
         require(
             !isSensitivePath(relativePath) && !WorkspaceSensitivePathPolicy.isSensitiveTarget(root, file)
@@ -80,16 +80,16 @@ class WorkspaceTools(context: Context) {
         require(content.toByteArray(Charsets.UTF_8).size <= 10 * 1024) { "Файл больше лимита записи 10 КБ. Разбей его на несколько небольших файлов." }
         file.parentFile?.mkdirs()
         AtomicWorkspaceFileWriter.write(file, content)
-        return "Записано ${content.toByteArray(Charsets.UTF_8).size} байт в $relativePath"
+        "Записано ${content.toByteArray(Charsets.UTF_8).size} байт в $relativePath"
     }
 
     /** User-initiated editor save; still workspace-confined, but allows larger files than agent tool writes. */
-    fun writeFileFromUser(relativePath: String, content: String): String {
+    fun writeFileFromUser(relativePath: String, content: String): String = WorkspaceMutationLock.withLock {
         val file = resolve(relativePath)
         require(content.toByteArray(Charsets.UTF_8).size <= 512 * 1024) { "Файл больше лимита редактора 512 КБ." }
         file.parentFile?.mkdirs()
         AtomicWorkspaceFileWriter.write(file, content)
-        return "Сохранено ${content.toByteArray(Charsets.UTF_8).size} байт в $relativePath"
+        "Сохранено ${content.toByteArray(Charsets.UTF_8).size} байт в $relativePath"
     }
 
 
@@ -126,7 +126,7 @@ class WorkspaceTools(context: Context) {
         return if (matches.isEmpty()) "Совпадений не найдено (проверено файлов: $inspected)." else matches.joinToString("\n")
     }
 
-    private fun looksLikeSecretContent(content: String): Boolean {
+    internal fun looksLikeSecretContent(content: String): Boolean {
         val patterns = listOf(
             Regex("(?i)(api[_-]?key|access[_-]?token|github[_-]?token|client[_-]?secret|password)\\s*[:=]\\s*[\"']?[A-Za-z0-9_./+=-]{20,}"),
             Regex("(?i)(sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})"),
@@ -135,7 +135,7 @@ class WorkspaceTools(context: Context) {
         return patterns.any { it.containsMatchIn(content) }
     }
 
-    private fun isSensitivePath(relativePath: String): Boolean =
+    internal fun isSensitivePath(relativePath: String): Boolean =
         WorkspaceSensitivePathPolicy.isSensitive(relativePath)
 
     fun rootPath(): String = root.absolutePath
