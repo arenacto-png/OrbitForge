@@ -1,5 +1,7 @@
 package com.orbitforge.mobile.ai
 
+import com.orbitforge.mobile.json.JsonNestingGuard
+
 import android.content.Context
 import com.orbitforge.mobile.diagnostics.DiagnosticLog
 import kotlinx.coroutines.CancellationException
@@ -114,6 +116,7 @@ class OpenAiCompatibleClient(private val context: Context) {
                         val data = line.removePrefix("data:").trim()
                         if (data == "[DONE]") break
                         try {
+                            JsonNestingGuard.requireWithinLimit(data)
                             val event = JSONObject(data)
                             if (ProviderApiAdapter.isStreamFinished(config.apiFormat, event)) break
                             val content = ProviderApiAdapter.parseStreamText(config.apiFormat, event)

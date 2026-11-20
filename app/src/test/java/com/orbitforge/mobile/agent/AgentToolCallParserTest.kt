@@ -118,6 +118,17 @@ class AgentToolCallParserTest {
         expectRejected { AgentToolCallParser.parse(message(*calls.toTypedArray()), allowedTools) }
     }
 
+    @Test
+    fun rejectsOverNestedArgumentsBeforeObjectParsing() {
+        val nested = "[".repeat(com.orbitforge.mobile.json.JsonNestingGuard.MAX_NESTING_DEPTH + 1) +
+            "0" +
+            "]".repeat(com.orbitforge.mobile.json.JsonNestingGuard.MAX_NESTING_DEPTH + 1)
+        val arguments = """{"nested":$nested}"""
+        expectRejected {
+            AgentToolCallParser.parse(message(call("call-1", "read_file", arguments)), allowedTools)
+        }
+    }
+
     private fun message(vararg calls: JSONObject): JSONObject =
         JSONObject().put("tool_calls", JSONArray().apply { calls.forEach { put(it) } })
 
