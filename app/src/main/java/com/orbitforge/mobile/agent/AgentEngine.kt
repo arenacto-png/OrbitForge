@@ -1,5 +1,7 @@
 package com.orbitforge.mobile.agent
 
+import com.orbitforge.mobile.json.JsonNestingGuard
+
 import android.content.Context
 import com.orbitforge.mobile.ai.ProviderConfig
 import com.orbitforge.mobile.ai.ProviderApiAdapter
@@ -218,6 +220,7 @@ class AgentEngine(context: Context) {
                                 throw IOException("Ошибка API HTTP " + response.code + ": " + safe.ifBlank { response.message } + " [request_id=${trace.id}]")
                             }
                             val parsed = try {
+                                JsonNestingGuard.requireWithinLimit(text)
                                 JSONObject(text)
                             } catch (e: Exception) {
                                 throw IOException("Не удалось разобрать ответ модели: " + e.message)
