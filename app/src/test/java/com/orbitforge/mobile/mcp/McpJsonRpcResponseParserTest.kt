@@ -243,6 +243,17 @@ class McpJsonRpcResponseParserTest {
         }
     }
 
+    @Test
+    fun rejectsOverNestedJsonRpcResponseBeforeObjectParsing() {
+        val nested = "[".repeat(com.orbitforge.mobile.json.JsonNestingGuard.MAX_NESTING_DEPTH + 1) +
+            "0" +
+            "]".repeat(com.orbitforge.mobile.json.JsonNestingGuard.MAX_NESTING_DEPTH + 1)
+        val body = """{"jsonrpc":"2.0","id":7,"result":{"nested":$nested}}"""
+        expectRejected {
+            McpJsonRpcResponseParser.parse(body, "application/json", expectedId = 7)
+        }
+    }
+
     private fun expectRejected(block: () -> Unit) {
         try {
             block()

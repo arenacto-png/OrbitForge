@@ -20,7 +20,7 @@
 
 ## Milestone 2 — Agent foundation
 - [x] Unit tests for workspace path traversal and absolute-path rejection
-- [x] Add tests for symlink escapes, strict tool-call parsing and agent step limits
+- [x] Add tests for symlink escapes, strict tool-call parsing, bounded JSON nesting and agent step limits
 - [x] Block sensitive-file access through in-workspace symlink aliases for agent reads, writes, and search
 - [x] Filter agent-facing file listings and terminal traversal for sensitive paths and canonical symlink aliases
 - [x] Validate existing file content before exposing agent write-approval diffs
@@ -53,8 +53,8 @@
 - [x] Enforce the shared sensitive-path policy for terminal `mkdir`/`touch`, including canonical aliases
 - [ ] Optional Termux/remote runtime adapter
 - [x] Skills (`SKILL.md`) loader with editable starter skills and size limits
-- [x] Single remote MCP endpoint with tool discovery/calls, approval before every external tool call, shared 2 MiB HTTP response bounds, automatic redirects disabled, credential-redacted bounded tool/error output, untrusted remote metadata labeling, and bounded tool-name validation
-- [x] Validate MCP JSON-RPC 2.0 response IDs/envelopes, complete bounded SSE events, and interleaved notification envelopes
+- [x] Single remote MCP endpoint with tool discovery/calls, approval before every external tool call, shared 2 MiB HTTP response bounds, automatic redirects disabled, credential-redacted bounded text/structured tool output and error details, embedded-resource text support, omission of binary media/resource-link URIs, untrusted remote metadata labeling, bounded tool-name validation, and structural validation of remote tool input schemas
+- [x] Validate MCP JSON-RPC 2.0 response IDs/envelopes, reject JSON nesting deeper than 64 levels before recursive MCP/provider parsing, and handle complete bounded SSE events with validated interleaved notifications
 - [ ] Optional remote executor for heavy builds
 - [x] CI workflow for unit tests and debug APK artifact
 - [ ] Release signing guidance and APK verification

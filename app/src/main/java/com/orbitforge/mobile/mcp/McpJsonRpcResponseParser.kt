@@ -1,5 +1,7 @@
 package com.orbitforge.mobile.mcp
 
+import com.orbitforge.mobile.json.JsonNestingGuard
+
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
@@ -22,9 +24,10 @@ internal object McpJsonRpcResponseParser {
         var matchedResponse: JSONObject? = null
         payloads.forEach { payload ->
             val message = try {
+                JsonNestingGuard.requireWithinLimit(payload)
                 JSONObject(payload)
             } catch (_: Exception) {
-                throw IllegalArgumentException("MCP response event is not a JSON object.")
+                throw IllegalArgumentException("MCP response event is not a bounded JSON object.")
             }
 
             require(message.opt("jsonrpc") is String && message.opt("jsonrpc") == "2.0") {

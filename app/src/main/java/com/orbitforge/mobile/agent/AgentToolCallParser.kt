@@ -1,5 +1,7 @@
 package com.orbitforge.mobile.agent
 
+import com.orbitforge.mobile.json.JsonNestingGuard
+
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -64,6 +66,7 @@ internal object AgentToolCallParser {
                 require(rawArguments.length <= MAX_ARGUMENT_CHARS) {
                     "Аргументы инструмента превышают лимит $MAX_ARGUMENT_CHARS символов."
                 }
+                JsonNestingGuard.requireWithinLimit(rawArguments)
                 val arguments = try {
                     JSONObject(rawArguments)
                 } catch (_: Exception) {
