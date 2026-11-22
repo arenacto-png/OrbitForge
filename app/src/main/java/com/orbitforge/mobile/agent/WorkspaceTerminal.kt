@@ -22,7 +22,7 @@ class WorkspaceTerminal(context: Context) {
                 require(params.size <= 1) { "Использование: ls [папка]" }
                 val entries = tools.listFilesForAgent(params.firstOrNull().orEmpty())
                 if (entries.isEmpty()) "(папка пуста)" else entries.joinToString("\n") {
-                    "${if (it.isDirectory) "DIR " else "FILE"} ${it.path}${if (it.isDirectory) "/" else " (${it.sizeBytes} B)"}"
+                    "${if (it.isDirectory) "DIR " else "FILE "}${it.path}${if (it.isDirectory) "/" else " (${it.sizeBytes} B)"}"
                 }
             }
             "cat" -> {
@@ -30,9 +30,11 @@ class WorkspaceTerminal(context: Context) {
                 tools.readFileForAgent(params[0]).take(MAX_OUTPUT_CHARS)
             }
             "head" -> {
-                require(params.isNotEmpty()) { "Использование: head <путь> [строки]" }
-                val count = params.getOrNull(1)?.toIntOrNull()?.coerceIn(1, 200) ?: 20
-                tools.readFileForAgent(params[0]).lineSequence().take(count).joinToString("\n")
+                val request = WorkspaceTerminalHead.parseArguments(params)
+                WorkspaceTerminalHead.format(
+                    tools.readFileForAgent(request.path),
+                    request.lineCount
+                )
             }
             "grep" -> {
                 require(params.size == 2) { "Использование: grep <текст> <путь>" }
@@ -83,7 +85,7 @@ class WorkspaceTerminal(context: Context) {
             "ls [папка] — список безопасных для агента файлов",
             "find [папка] — ограниченное дерево безопасных путей",
             "cat <файл> — прочитать файл",
-            "head <файл> [N] — первые N строк",
+            "head <файл> [N] — первые N строк (по умолчанию 20, максимум 200)",
             "grep <текст> <файл> — поиск текста",
             "wc <файл> — строки/символы/байты",
             "mkdir <папка> — создать папку",
