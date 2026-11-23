@@ -57,7 +57,6 @@
 - [x] Single remote MCP endpoint with tool discovery/calls, approval before every external tool call, shared 2 MiB HTTP response bounds, automatic redirects disabled, credential-redacted bounded text/structured tool output and error details, embedded-resource text support, omission of binary media/resource-link URIs, untrusted remote metadata labeling, bounded tool-name validation, and structural validation of remote tool input schemas
 - [x] Validate MCP JSON-RPC 2.0 response IDs/envelopes, reject JSON nesting deeper than 64 levels before recursive MCP/provider parsing, and handle complete bounded SSE events with validated interleaved notifications
 - [ ] Optional remote executor for heavy builds
-- [x] CI workflow for unit tests and debug APK artifact
 - [ ] Release signing guidance and APK verification
 
 
