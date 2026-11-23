@@ -22,7 +22,7 @@ class WorkspaceTerminal(context: Context) {
                 require(params.size <= 1) { "Использование: ls [папка]" }
                 val entries = tools.listFilesForAgent(params.firstOrNull().orEmpty())
                 if (entries.isEmpty()) "(папка пуста)" else entries.joinToString("\n") {
-                    "${if (it.isDirectory) "DIR " else "FILE"} ${it.path}${if (it.isDirectory) "/" else " (${it.sizeBytes} B)"}"
+                    "${if (it.isDirectory) "DIR " else "FILE "}${it.path}${if (it.isDirectory) "/" else " (${it.sizeBytes} B)"}"
                 }
             }
             "cat" -> {
