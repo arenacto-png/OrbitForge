@@ -27,7 +27,7 @@ class WorkspaceTerminal(context: Context) {
             }
             "cat" -> {
                 require(params.size == 1) { "Использование: cat <путь>" }
-                tools.readFileForAgent(params[0]).take(MAX_OUTPUT_CHARS)
+                WorkspaceTerminalOutput.format(tools.readFileForAgent(params[0]))
             }
             "head" -> {
                 val request = WorkspaceTerminalHead.parseArguments(params)
@@ -78,7 +78,6 @@ class WorkspaceTerminal(context: Context) {
     fun isMutating(commandLine: String): Boolean = TerminalCommandParser.isMutating(commandLine)
 
     companion object {
-        private const val MAX_OUTPUT_CHARS = 20_000
         private val HELP = listOf(
             "Доступные команды OrbitForge (без системного shell):",
             "pwd — путь рабочей папки",
