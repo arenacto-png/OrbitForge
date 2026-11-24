@@ -48,6 +48,7 @@
 
 ## Milestone 4 — Runtime and extensibility
 - [x] Limited app-private workspace terminal with command allowlist
+- [x] Bound terminal `cat` output to 20,000 characters and mark truncation
 - [x] Stateful terminal argument parser with quote validation and shell-control rejection tests
 - [x] Enforce agent-safe file-read policy and bounded output for terminal `grep`
 - [x] Enforce the shared sensitive-path policy for terminal `mkdir`/`touch`, including canonical aliases
