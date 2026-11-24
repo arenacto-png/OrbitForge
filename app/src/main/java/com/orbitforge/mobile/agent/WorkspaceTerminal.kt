@@ -76,7 +76,6 @@ class WorkspaceTerminal(context: Context) {
     fun isMutating(commandLine: String): Boolean = TerminalCommandParser.isMutating(commandLine)
 
     companion object {
-        private const val MAX_OUTPUT_CHARS = 20_000
         private val HELP = listOf(
             "Доступные команды OrbitForge (без системного shell):",
             "pwd — путь рабочей папки",
