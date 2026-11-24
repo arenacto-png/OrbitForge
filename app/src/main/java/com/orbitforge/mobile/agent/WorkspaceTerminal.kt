@@ -30,9 +30,11 @@ class WorkspaceTerminal(context: Context) {
                 WorkspaceTerminalOutput.format(tools.readFileForAgent(params[0]))
             }
             "head" -> {
-                require(params.isNotEmpty()) { "Использование: head <путь> [строки]" }
-                val count = params.getOrNull(1)?.toIntOrNull()?.coerceIn(1, 200) ?: 20
-                tools.readFileForAgent(params[0]).lineSequence().take(count).joinToString("\n")
+                val request = WorkspaceTerminalHead.parseArguments(params)
+                WorkspaceTerminalHead.format(
+                    tools.readFileForAgent(request.path),
+                    request.lineCount
+                )
             }
             "grep" -> {
                 require(params.size == 2) { "Использование: grep <текст> <путь>" }
@@ -82,7 +84,7 @@ class WorkspaceTerminal(context: Context) {
             "ls [папка] — список безопасных для агента файлов",
             "find [папка] — ограниченное дерево безопасных путей",
             "cat <файл> — прочитать файл",
-            "head <файл> [N] — первые N строк",
+            "head <файл> [N] — первые N строк (по умолчанию 20, максимум 200)",
             "grep <текст> <файл> — поиск текста",
             "wc <файл> — строки/символы/байты",
             "mkdir <папка> — создать папку",
