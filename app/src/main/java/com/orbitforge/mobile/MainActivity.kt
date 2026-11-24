@@ -407,6 +407,7 @@ private fun ChatScreen(storage: AppStorage, secrets: SecretStore, requestScope: 
             title = { Text(when {
                 approval.path.startsWith("MCP:") -> "Разрешить внешний MCP-вызов?"
                 approval.path.startsWith("terminal:") -> "Разрешить команду терминала?"
+                approval.path.startsWith("patch:") -> "Применить структурированный патч?"
                 else -> "Разрешить запись файла?"
             }) },
             text = {
@@ -419,6 +420,23 @@ private fun ChatScreen(storage: AppStorage, secrets: SecretStore, requestScope: 
                                 Text(approval.content, fontSize = 11.sp, color = Color(0xFFD5D9E3))
                             }
                             Text("Вызов передаст аргументы настроенному внешнему MCP-серверу. Продолжай только если доверяешь этому серверу.")
+                        }
+                        approval.path.startsWith("patch:") -> {
+                            Text(
+                                "Будут изменены существующие файлы: " + approval.path.removePrefix("patch: ") + ".",
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text("Общий предпросмотр точечных правок:", color = ForgeMuted)
+                            Column(
+                                Modifier.heightIn(max = 280.dp).fillMaxWidth()
+                                    .background(ForgeSurface, RoundedCornerShape(8.dp))
+                                    .padding(10.dp).verticalScroll(rememberScrollState())
+                            ) {
+                                Text(approval.diffPreview, fontSize = 11.sp, color = Color(0xFFD5D9E3))
+                            }
+                            Text(
+                                "Каждый фрагмент должен совпасть ровно один раз. Создание и удаление файлов не поддерживаются; при ошибке приложение попытается безопасно откатить изменения."
+                            )
                         }
                         approval.path.startsWith("terminal:") -> {
                             Text(approval.path.removePrefix("terminal: "), fontWeight = FontWeight.SemiBold)
