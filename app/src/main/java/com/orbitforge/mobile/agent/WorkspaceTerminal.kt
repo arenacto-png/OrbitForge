@@ -27,7 +27,7 @@ class WorkspaceTerminal(context: Context) {
             }
             "cat" -> {
                 require(params.size == 1) { "Использование: cat <путь>" }
-                tools.readFileForAgent(params[0]).take(MAX_OUTPUT_CHARS)
+                WorkspaceTerminalOutput.format(tools.readFileForAgent(params[0]))
             }
             "head" -> {
                 require(params.isNotEmpty()) { "Использование: head <путь> [строки]" }
