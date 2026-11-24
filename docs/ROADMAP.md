@@ -48,10 +48,11 @@
 
 ## Milestone 4 — Runtime and extensibility
 - [x] Limited app-private workspace terminal with command allowlist
+- [x] Bound terminal `cat` output to 20,000 characters and mark truncation
+- [x] Strict `head` argument parsing and bounded output
 - [x] Stateful terminal argument parser with quote validation and shell-control rejection tests
 - [x] Enforce agent-safe file-read policy and bounded output for terminal `grep`
 - [x] Enforce the shared sensitive-path policy for terminal `mkdir`/`touch`, including canonical aliases
-- [x] Strict `head` argument parsing and bounded output
 - [ ] Optional Termux/remote runtime adapter
 - [x] Skills (`SKILL.md`) loader with editable starter skills and size limits
 - [x] Single remote MCP endpoint with tool discovery/calls, approval before every external tool call, shared 2 MiB HTTP response bounds, automatic redirects disabled, credential-redacted bounded text/structured tool output and error details, embedded-resource text support, omission of binary media/resource-link URIs, untrusted remote metadata labeling, bounded tool-name validation, and structural validation of remote tool input schemas
