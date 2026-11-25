@@ -3,8 +3,8 @@ package com.orbitforge.mobile.agent
 /** Strict argument parsing and bounded output for the workspace terminal's read-only tail command. */
 internal object WorkspaceTerminalTail {
     const val DEFAULT_LINE_COUNT = 20
-    const MAX_LINE_COUNT = 200
-    const MAX_OUTPUT_CHARS = 20_000
+    const val MAX_LINE_COUNT = 200
+    const val MAX_OUTPUT_CHARS = 20_000
 
     private const val TRUNCATION_MARKER = "… вывод сокращён …"
 
