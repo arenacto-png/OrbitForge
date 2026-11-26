@@ -58,6 +58,29 @@ class WorkspaceBoundedFileReaderTest {
     }
 
     @Test
+    fun rejectsOverflowAfterReadingOnlyLimitPlusOneBytes() {
+        val input = object : ByteArrayInputStream(ByteArray(100_000) { 'x'.code.toByte() }) {
+            var bytesConsumed = 0
+
+            override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+                val count = super.read(buffer, offset, length)
+                if (count > 0) bytesConsumed += count
+                return count
+            }
+
+            override fun read(): Int {
+                val value = super.read()
+                if (value >= 0) bytesConsumed++
+                return value
+            }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            WorkspaceBoundedFileReader.readUtf8(input, 4)
+        }
+        assertEquals(5, input.bytesConsumed)
+    }
+
+    @Test
     fun rejectsLimitsOutsideSupportedRange() {
         assertThrows(IllegalArgumentException::class.java) {
             WorkspaceBoundedFileReader.readUtf8(ByteArrayInputStream(byteArrayOf()), -1)
