@@ -8,6 +8,7 @@
 - Treat model output, tool names, paths, and arguments as untrusted input.
 - Validate tool arguments against explicit schemas.
 - Validate paths before showing approval prompts and restrict file operations to the chosen workspace root; reject traversal and symlink escapes. Agent read/write/search policies must check the canonical target as well as the user-supplied path so in-root symlink aliases cannot bypass sensitive-file exclusions.
+- Enforce the workspace file-read cap while streaming rather than relying only on a pre-read file-size check; this bounds bytes read if a file grows during access. Text search uses the same bounded reader.
 - Ask for approval before destructive writes, shell commands, network access, or publishing changes.
 - App-private workspace saves write UTF-8 content to a same-directory temporary file, sync it, and replace the target with an atomic move. If the filesystem cannot provide an atomic move, the save fails closed instead of falling back to a direct truncating write. This protects individual files, not a multi-file operation.
 - SAF export must finish writing a temporary destination document before moving an existing user file to a backup name. If promotion fails, attempt to restore the previous document; if restoration cannot be confirmed, retain the backup. Never delete an existing destination before the staged copy completes, and do not fall back to direct truncating overwrite when provider rename is unsupported.
