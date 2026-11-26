@@ -55,21 +55,26 @@ class WorkspaceTools(context: Context) {
     }
 
     /**
-     * Full existing-file content for the agent's write approval diff. Unlike the context reader,
-     * this is not truncated: a partial old file would make the approval preview misleading.
-     * Sensitive canonical targets and secret-like contents are rejected before the UI sees a diff.
+     * Reads complete, bounded file content through the same sensitive-path and secret-content
+     * policy as agent context reads. This is used by read-only tools that need the actual tail.
      */
-    fun readFileForAgentWritePreview(relativePath: String): String {
+    fun readFileForAgentFull(relativePath: String): String {
         val file = resolve(relativePath)
         require(
             !isSensitivePath(relativePath) && !WorkspaceSensitivePathPolicy.isSensitiveTarget(root, file)
-        ) { "Предпросмотр записи в секретные файлы через агента запрещён." }
+        ) { "Чтение секретных файлов через инструменты агента запрещено." }
         val content = readFile(file)
         require(!looksLikeSecretContent(content)) {
-            "Файл похож на содержащий секреты; предпросмотр записи агентом заблокирован."
+            "Файл похож на содержащий секреты; доступ агента заблокирован."
         }
         return content
     }
+
+    /**
+     * Full existing-file content for the agent's write approval diff. Unlike the context reader,
+     * this is not truncated: a partial old file would make the approval preview misleading.
+     */
+    fun readFileForAgentWritePreview(relativePath: String): String = readFileForAgentFull(relativePath)
 
     fun writeFile(relativePath: String, content: String): String {
         val file = resolve(relativePath)

@@ -34,6 +34,13 @@ class WorkspaceTerminal(context: Context) {
                 val count = params.getOrNull(1)?.toIntOrNull()?.coerceIn(1, 200) ?: 20
                 tools.readFileForAgent(params[0]).lineSequence().take(count).joinToString("\n")
             }
+            "tail" -> {
+                val request = WorkspaceTerminalTail.parseArguments(params)
+                WorkspaceTerminalTail.format(
+                    tools.readFileForAgentFull(request.path),
+                    request.lineCount
+                )
+            }
             "grep" -> {
                 require(params.size == 2) { "Использование: grep <текст> <путь>" }
                 WorkspaceTerminalGrep.search(params[0], params[1], tools::readFileForAgent)
@@ -83,6 +90,7 @@ class WorkspaceTerminal(context: Context) {
             "find [папка] — ограниченное дерево безопасных путей",
             "cat <файл> — прочитать файл",
             "head <файл> [N] — первые N строк",
+            "tail <файл> [N] — последние N строк (по умолчанию 20, максимум 200)",
             "grep <текст> <файл> — поиск текста",
             "wc <файл> — строки/символы/байты",
             "mkdir <папка> — создать папку",

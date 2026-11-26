@@ -358,7 +358,7 @@ class AgentEngine(context: Context) {
         ))
         put(tool(
             "run_command",
-            "Run one supported OrbitForge workspace terminal command such as pwd, ls, find, cat, head, grep, or wc. Mutating commands such as mkdir and touch require approval. This is not a system shell; shell operators and arbitrary commands are rejected.",
+            "Run one supported OrbitForge workspace terminal command such as pwd, ls, find, cat, head, tail, grep, or wc. Mutating commands such as mkdir and touch require approval. This is not a system shell; shell operators and arbitrary commands are rejected.",
             JSONObject().put("type", "object")
                 .put("properties", JSONObject().put("command", stringSchema("One command from the supported OrbitForge terminal command list.")))
                 .put("required", JSONArray().put("command"))
