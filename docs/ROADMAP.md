@@ -22,6 +22,7 @@
 - [x] Unit tests for workspace path traversal and absolute-path rejection
 - [x] Add tests for symlink escapes, strict tool-call parsing, bounded JSON nesting and agent step limits
 - [x] Block sensitive-file access through in-workspace symlink aliases for agent reads, writes, and search
+- [x] Enforce the 512 KiB workspace file-read limit while streaming, including text search, to avoid size-check/read races
 - [x] Filter agent-facing file listings and terminal traversal for sensitive paths and canonical symlink aliases
 - [x] Validate existing file content before exposing agent write-approval diffs
 - [x] Bounded diff preview before agent writes; approve/reject supported
