@@ -38,7 +38,7 @@ class WorkspaceTools(context: Context) {
 
     private fun readFile(file: File): String {
         require(file.isFile) { "Файл не найден." }
-        return file.inputStream().buffered().use { WorkspaceBoundedFileReader.readUtf8(it) }
+        return file.inputStream().use { WorkspaceBoundedFileReader.readUtf8(it) }
     }
 
     /** Bounded file reader for model context; the user editor can still read the full file. */
@@ -118,7 +118,7 @@ class WorkspaceTools(context: Context) {
             if (canonical.length() > WorkspaceBoundedFileReader.MAX_BYTES) continue
             inspected++
             val fileContent = try {
-                canonical.inputStream().buffered().use { WorkspaceBoundedFileReader.readUtf8(it) }
+                canonical.inputStream().use { WorkspaceBoundedFileReader.readUtf8(it) }
             } catch (_: Exception) {
                 continue
             }
