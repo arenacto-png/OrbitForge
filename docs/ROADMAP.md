@@ -60,7 +60,7 @@
 - [x] Validate MCP JSON-RPC 2.0 response IDs/envelopes, reject JSON nesting deeper than 64 levels before recursive MCP/provider parsing, and handle complete bounded SSE events with validated interleaved notifications
 - [ ] Optional remote executor for heavy builds
 - [x] CI workflow for unit tests and debug APK artifact
-- [ ] Release signing guidance and APK verification
+- [x] Release signing guidance and CI verification of debug APK signature and SHA-256 (release keys remain manual and private)
 
 
 See [`LIVE_TESTING.md`](LIVE_TESTING.md) for the first-build and on-device verification procedure.
