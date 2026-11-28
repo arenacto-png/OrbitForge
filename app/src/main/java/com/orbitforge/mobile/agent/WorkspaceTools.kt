@@ -38,8 +38,7 @@ class WorkspaceTools(context: Context) {
 
     private fun readFile(file: File): String {
         require(file.isFile) { "Файл не найден." }
-        require(file.length() <= 512 * 1024) { "Файл больше лимита чтения 512 КБ." }
-        return file.readText(Charsets.UTF_8)
+        return file.inputStream().use { WorkspaceBoundedFileReader.readUtf8(it) }
     }
 
     /** Bounded file reader for model context; the user editor can still read the full file. */
@@ -116,9 +115,13 @@ class WorkspaceTools(context: Context) {
             val canonical = file.canonicalFile
             if (canonical != root.canonicalFile && !canonical.path.startsWith(root.canonicalPath + File.separator)) continue
             if (WorkspaceSensitivePathPolicy.isSensitiveTarget(root, canonical)) continue
-            if (canonical.length() > 512 * 1024) continue
+            if (canonical.length() > WorkspaceBoundedFileReader.MAX_BYTES) continue
             inspected++
-            val fileContent = try { canonical.readText(Charsets.UTF_8) } catch (_: Exception) { continue }
+            val fileContent = try {
+                canonical.inputStream().use { WorkspaceBoundedFileReader.readUtf8(it) }
+            } catch (_: Exception) {
+                continue
+            }
             if (looksLikeSecretContent(fileContent)) continue
             val lines = fileContent.lineSequence().toList()
             lines.forEachIndexed { index, line ->

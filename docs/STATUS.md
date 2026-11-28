@@ -3,6 +3,7 @@
 ## Implemented in source (not yet live-verified)
 
 - Native Compose UI: agent/chat, projects, text editor, limited terminal, settings, diagnostics.
+- Workspace file reads and text-search reads use a streaming UTF-8 reader that enforces the 512 KiB limit while consuming bytes; files that grow during a read are rejected without buffering beyond the cap.
 - OpenAI-compatible Chat Completions and Anthropic Messages streaming chat, provider-format selection, and an in-app connection test. The Anthropic adapter translates agent tool schemas, tool-use responses, and tool-result history into the shared strict tool-call validation path.
 - Local conversation history and separate encrypted API/GitHub/MCP credentials using Android Keystore.
 - Cancelled chat/agent requests replace the pending assistant placeholder with a durable cancellation result; partial chat output is retained with an incomplete-response marker, and the history is persisted.
